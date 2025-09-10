@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>World Explorer</title>
+    </head>
+    <body>
+        <header class="banner">
+            <h1>World Explorer</h1>
+        </header>
+        <nav>
+            <ul>
+                <li><button id=""openSearchButton">Open Search</button></li>
+                <li><button id=""openMovementSettingsButton">Open Movement Settings</button></li>
+            </ul>
+        </nav>
+        <main id="mapContent">
+            <div class="search-area" role="region" aria-label="Search">
+                <h2>Search for Location</h2>
+                <button id="closeSearchButton">Close Search</button>
+                <label for="searchBox">Search for Location:</label>
+                <input type="search" id="searchBox" placeholder="Enter search terms here.">
+                <div id="searchResults" role="region" aria-label="Search Results" aria-live="polite"></div>
+            </div>
+            <h2>Let's Explore</h2>
+            <p id="status" aria-live="polite">Loading...</p>
+            <p id="heading" aria-live="polite"></p>
+            <div class="turn-buttons" role="group" aria-label="Turn Buttons">
+                <h3>Let's Move</h3>
+                <ul>
+                <li><button id="turnLeft" aria-label="Turn Left"></button></li>
+                <li><button id="go" aria-label="Go"></button></li>
+                <li><button id="turnRight" aria-label="Turn Right"></button></li>
+                </ul>
+                <p id="announcement" aria-live="polite"></p>
+            </div>
+        </main>
+        <script src="js/index.js"></script>
+    </body>
+</html>
