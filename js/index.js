@@ -1,11 +1,12 @@
-    let lat = 40.7128;
-    let lon = -74.0060;
 document.addEventListener("DOMContentLoaded", () => {
+    let lat;
+    let lon;
     const map_content = document.getElementById("mapContent");
     let best_position = null;
     let watch_position_id = null;
     let current_heading = 0; //indegrees, normalized
     let current_moving_distance = 90; //in meters
+    let current_rotation_increment = 45; //for left and right turn buttons in degrees
     const srAnnounce = (element, message) => {
         element.innerHTML = "";
         setTimeout(() => {
@@ -13,9 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 50);
     };
     const printDistance = (distance_in_meters) => {
-        const distance_in_miles = (distance_in_meters / 1609).toFixed(2);
-        if (distance_in_miles < 0.1) return `${Math.round((distance_in_miles * 5280) / 50) * 50} feet`;
-        else return `${distance_in_miles} miles`;
+        if (distance_in_meters < 158.4) return `${Math.floor(distance_in_meters / 0.3)} feet`;
+        else return `${(distance_in_meters / 1609).toFixed(1)} miles`;
     }
     const directions = ["North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"];
     async function updateStatus(lat, lon) {
@@ -38,6 +38,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const {latitude, longitude, accuracy} = position.coords;
         if (!best_position || accuracy < best_position.coords.accuracy) best_position = position;
     }, (err) => {
+        lat = 40.7128;
+        lon = -74.0060;
         updateStatus(lat, lon);
     }, {
         enableHighAccuracy: true,
@@ -56,18 +58,22 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelector("#searchBox").disabled = false;
     }, 10000);
     }
-    else updateStatus(lat, lon, 0);
+    else {
+        lat = 40.7128;
+        lon = -74.0060;
+        updateStatus(lat, lon);
+    }
     const updateHeading = () => {
         current_heading = (current_heading + 360) % 360;
         srAnnounce(document.getElementById("heading"), `Heading: ${current_heading} degrees ${directions[Math.round(current_heading / 45) % 8]}`);
     };
     updateHeading();
     document.getElementById("turnLeft").addEventListener("click", () => {
-        current_heading -= 45;
+        current_heading -= current_rotation_increment;
         updateHeading();
     });
     document.getElementById("turnRight").addEventListener("click", () => {
-        current_heading += 45;
+        current_heading += current_rotation_increment;
         updateHeading();
     });
         const move = (lat1, lon1, moving_distance, heading) => {
@@ -103,8 +109,7 @@ function calculateDistanceBetweenCordinates(lat1, lon1, lat2, lon2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }    
-    document.getElementById("go").addEventListener("click", (e) => {
-        e.preventDefault();
+    document.getElementById("go").addEventListener("click", () => {
         const {lat: new_lat, lon: new_lon} = move(lat, lon, current_moving_distance, current_heading);
         lat = new_lat;
         lon = new_lon;
@@ -160,8 +165,46 @@ function calculateDistanceBetweenCordinates(lat1, lon1, lat2, lon2) {
                     lon= parseFloat(button.dataset.lon);
                     updateStatus(lat, lon);
                     results_area.innerHTML = "";
+                    query = "";
                 });
             });
                 }, 500);
+    });
+    const updateMovementDistance = () => {
+        let distance = parseFloat(document.getElementById("movingDistanceBox").value);
+        const unit = document.getElementById("movingDistanceUnit").value;
+        const settings_announcement = document.getElementById("settingsAnnouncement");
+        if(!distance) distance = 1;
+        if (unit == "feet") {
+            srAnnounce(settings_announcement, `Movement distance updated to ${distance} ${unit}.`);
+            distance *= 0.3;
+        }
+        else if (unit == "kilometers") {
+            srAnnounce(settings_announcement, `Movement distance updated to ${distance} ${unit}.`);
+            distance *= 1000;
+        }
+        else if (unit == "miles") {
+            srAnnounce(settings_announcement, `Movement distance updated to ${distance} ${unit}.`);
+            distance *= 1609;
+        }
+        else             srAnnounce(settings_announcement, `Movement distance updated to ${distance} ${unit}.`);
+        current_moving_distance = distance;
+    };
+    document.getElementById("movingDistanceBox").addEventListener("input", updateMovementDistance);
+    document.getElementById("movingDistanceUnit").addEventListener("input", updateMovementDistance);
+    document.getElementById("currentDirectionBox").addEventListener("input", (e) => {
+        let new_heading = parseFloat(e.target.value);
+        if (!e.target.value) new_heading = 0;
+        if (e.target.value > 359) new_heading = 359;
+        current_heading = new_heading;
+        srAnnounce(document.getElementById("settingsAnnouncement"), `Updated movement direction to ${new_heading} degrees.`);
+        srAnnounce(document.getElementById("announcement"), `Heading: ${current_heading} degrees ${directions[Math.round(current_heading / 45) % 8]}`);
+    });
+    document.getElementById("rotationIncrementBox").addEventListener("input", (e) => {
+        let new_rotation_increment = parseFloat(e.target.value);
+        if (!e.target.value) new_rotation_increment = 45;
+        if (e.target.value > 180) new_rotation_increment = 180;
+        current_rotation_increment = new_rotation_increment;
+        srAnnounce(document.getElementById("settingsAnnouncement"), `Update turn buttons rotation increment to ${new_rotation_increment} degrees.`);
     });
 });

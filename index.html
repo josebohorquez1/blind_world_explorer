@@ -34,8 +34,8 @@
             <label for="movingDistanceBox">Distance:</label>
             <input type="number" id="movingDistanceBox" min="0" placeholder="Enter movement distance here." value="1">
             <select id="movingDistanceUnit" name="movingDistanceUnit">
-                <option value="feet">Feet</option>
                 <option value="meters" selected>Meters</option>
+                <option value="feet">Feet</option>
                 <option value="kilometers">Kilometers</option>
                 <option value="miles">Miles</option>
             </select>
@@ -43,7 +43,7 @@
         <div class="setting" role="region" aria-label="Current Direction">
             <h3>Current Direction</h3>
             <p class="description">Controls the current direction in degrees.</p>
-            <label for="currentDirectionBox">Current Direction</label>
+            <label for="currentDirectionBox">Current Direction in Degrees:</label>
             <input type="number" id="currentDirectionBox" min="0" max="359" placeholder="Enter the direction in degrees from 0 to 359." value="0">
         </div>
         <div class="setting" role="region" aria-label="Rotation Increment">
@@ -52,6 +52,7 @@
             <label for="rotationIncrementBox">Rotation Increment:</label>
             <input type="number" id="rotationIncrementBox" min="0" max="180" value="45">
         </div>
+        <p id="settingsAnnouncement" aria-live="polite"></p>
     </div>
     <main id="mapContent">
             <h2>Let's Explore</h2>
