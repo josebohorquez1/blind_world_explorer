@@ -63,18 +63,16 @@ document.addEventListener("DOMContentLoaded", () => {
         lon = -74.0060;
         updateStatus(lat, lon);
     }
-    const updateHeading = () => {
-        current_heading = (current_heading + 360) % 360;
+    const updateHeading = (heading) => {
+        current_heading = (heading + 360) % 360;
         srAnnounce(document.getElementById("heading"), `Heading: ${current_heading} degrees ${directions[Math.round(current_heading / 45) % 8]}`);
     };
-    updateHeading();
+    updateHeading(current_heading);
     document.getElementById("turnLeft").addEventListener("click", () => {
-        current_heading -= current_rotation_increment;
-        updateHeading();
+        updateHeading(current_heading - current_rotation_increment);
     });
     document.getElementById("turnRight").addEventListener("click", () => {
-        current_heading += current_rotation_increment;
-        updateHeading();
+        updateHeading(current_heading + current_rotation_increment);
     });
         const move = (lat1, lon1, moving_distance, heading) => {
         const R = 6371000;
@@ -196,9 +194,8 @@ function calculateDistanceBetweenCordinates(lat1, lon1, lat2, lon2) {
         let new_heading = parseFloat(e.target.value);
         if (!e.target.value) new_heading = 0;
         if (e.target.value > 359) new_heading = 359;
-        current_heading = new_heading;
+        updateHeading(new_heading);
         srAnnounce(document.getElementById("settingsAnnouncement"), `Updated movement direction to ${new_heading} degrees.`);
-        srAnnounce(document.getElementById("announcement"), `Heading: ${current_heading} degrees ${directions[Math.round(current_heading / 45) % 8]}`);
     });
     document.getElementById("rotationIncrementBox").addEventListener("input", (e) => {
         let new_rotation_increment = parseFloat(e.target.value);
