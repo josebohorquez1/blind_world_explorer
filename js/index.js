@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, (err) => {
         state.lat = 40.7128;
         state.lon = -74.0060;
-        Utils.updateStatus(lat, lon)
+        Utils.updateStatus(lat, lon);
     }, {
         enableHighAccuracy: true,
         maximumAge: 0,

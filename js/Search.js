@@ -55,6 +55,7 @@ export const initSearchEvent = () => {
         results_area.innerHTML = html;
             document.querySelectorAll("#searchResults ul li button").forEach(button => {
                 button.addEventListener("click", () => {
+                    state.location_history.push({lat: state.lat, lon: state.lon});
                     state.lat= parseFloat(button.dataset.lat);
                     state.lon= parseFloat(button.dataset.lon);
                     Utils.updateStatus(state.lat, state.lon);
