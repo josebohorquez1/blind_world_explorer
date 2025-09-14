@@ -90,3 +90,17 @@ export const  getBearing = (lat1, lon1, lat2, lon2) => {
   // Normalize to 0–360
   return (θ + 360) % 360;
 };
+
+//Function that makes a bounding box given a center coords and distance in miles
+export const getBoundingBox = (center_lat, center_lon, radius_km) => {
+    const lat_deg_km = 111.32;
+    const lon_deg_km = 111.32 * Math.cos(center_lat * Math.PI / 180);
+    const delta_lat = radius_km / lat_deg_km;
+    const delta_lon = radius_km / lon_deg_km;
+    return {
+        south: center_lat - delta_lat,
+        west: center_lon - delta_lon,
+        north: center_lat + delta_lat,
+        east: center_lon + delta_lon
+    };
+};

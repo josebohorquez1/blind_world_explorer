@@ -4,9 +4,50 @@
 //Importing state since some buttons change the current state
 import * as Utils from "./UtilFunctions.js";
 import { state } from "./state.js";
+import * as Map from "./Map.js";
 
 //Function wrapper for all button event to easily export them
 export const initButtons = () => {
+    //Change mode button
+    document.getElementById("changeModeButton").addEventListener("click", (e) => {
+        state.is_road_mode = !state.is_road_mode;
+        if (state.is_road_mode) {
+            if (!state.intersections) {
+                Utils.srAnnounce(document.getElementById("announcement"), `No roads available.`);
+                state.is_road_mode = false;
+                return;
+            }
+            e.target.textContent = "Change to Explorer Mode";
+            Utils.srAnnounce(document.getElementById("announcement"), `Changed mode to road mode. You will now be able to navigate by road.`);
+            const node_id = Map.getClosestIntersectionNodeId(state.lat, state.lon, state.intersections);
+            const node = Map.retrieveNode(state.road_data, node_id);
+            state.lat = node.lat;
+            state.lon = node.lon;
+            const edges = state.intersection_graph[node_id];
+            let best_edge = null;
+            let best_diff = Infinity;
+            for (const edge of edges) {
+                const next_node = Map.retrieveNode(state.road_data, edge.to);
+                const bearing = (Math.round(Utils.getBearing(state.lat, state.lon, next_node.lat, next_node.lon) + 360)) % 360;
+                const diff = ((bearing - state.current_heading) + 360) % 360;
+                if (diff < best_diff) {
+                    best_diff = diff;
+                    best_edge = edge;
+                }
+            }
+            const intersection_string = "Current Intersection: " + Map.currentIntersectionTitle(edges.map(edge => edge.way));
+            Utils.srAnnounce(document.getElementById("status"), `${intersection_string}.`);
+            state.current_heading = Utils.updateHeading(best_diff);
+            const continueing_edge = Map.continueOnSameRoad(state.intersection_graph, node_id, best_edge);
+            const next_intersection = state.intersection_graph[best_edge.to].map(edge => edge.way);
+            Utils.srAnnounce(document.getElementById("announcement"), `Heading ${state.directions[Math.round(state.current_heading / 45) % 8]} on ${Map.getRoadName(best_edge.way)}.<br>Next Intersection: ${Map.currentIntersectionTitle(next_intersection)} ${Utils.printDistance(continueing_edge.distance)} away.`);
+        }
+        else {
+            e.target.textContent = "Change to Road Mode";
+            Utils.updateStatus(state.lat, state.lon);
+        }
+    });
+
     //Turn buttons
     document.querySelector("#turnLeft").addEventListener("click", () => state.current_heading = Utils.updateHeading(state.current_heading - state.current_rotation_increment));
     document.querySelector("#turnRight").addEventListener("click", () => state.current_heading = Utils.updateHeading(state.current_heading + state.current_rotation_increment));
