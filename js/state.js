@@ -5,6 +5,7 @@ export const state = {
     road_data: [], //Contains the road data
     intersections: {}, //Holds the intersections
     intersection_graph: {}, //Holds the graph of intersections
+    current_road: {}, //Holds the current road in road mode
     lat: 0, //Current lat in decimal degrees
     lon: 0, //Current lon in decimal degrees
     current_heading: 0, //Current directional heading in degrees

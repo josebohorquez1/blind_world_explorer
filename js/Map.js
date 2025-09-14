@@ -113,13 +113,13 @@ export const currentIntersectionTitle = (intersection) => {
     const names = [];
     for (const w of intersection) {
         if (w.tags.name) {
-            if (!names.includes(w.tags.name)) names.push(getRoadName(w));
+            if (!names.includes(w.tags.name)) names.push(w.tags.name);
         }
         else names.push(getRoadName(w));
     }
     let intersection_string = "";
-    if (intersection.length == 1) intersection_string += `${getRoadName(intersection[0])}`;
-    else if (intersection.length == 2) intersection_string += `${getRoadName(intersection[0])} and ${getRoadName(intersection[1])}`;
+    if (names.length == 1) intersection_string += `${names[0]}`;
+    else if (names.length == 2) intersection_string += `${names[0]} and ${names[1]}`;
     else {
         const last = names.pop();
         intersection_string += `${names.join(", ")} and ${last}`
@@ -128,10 +128,23 @@ export const currentIntersectionTitle = (intersection) => {
 };
 
 //Function to continue on same road
-export const continueOnSameRoad = (graph, current_intersection_id, edge) => {
+export const continueOnSameRoad = (graph, current_intersection_id, edge, incoming_bearing) => {
     const next_intersection = edge.to;
     const next_intersection_edges = graph[next_intersection];
     if (!next_intersection_edges) return null;
-    const continueing_edge = next_intersection_edges.filter(e => e.way.id == edge.way.id && e.to != current_intersection_id);
-    return continueing_edge.length > 0? continueing_edge[0] : null;
+    let best_edge = null;
+    let best_diff = Infinity;
+    for (const e of next_intersection_edges) {
+        if (e.to == current_intersection_id) continue;
+        if (e.way.id != edge.way.id && getRoadName(e.way) != getRoadName(edge.way)) continue;
+        const to_node = retrieveNode(state.road_data, e.to);
+        const intersection_node = retrieveNode(state.road_data, next_intersection);
+        const outgoing_bearing = Utils.getBearing(intersection_node.lat, intersection_node.lon, to_node.lat, to_node.lon);
+        const diff = Math.abs(((incoming_bearing - outgoing_bearing + 540) % 360) - 180);
+        if (diff < best_diff) {
+            best_diff = diff;
+            best_edge = e;
+        }
+    }
+    return best_edge;
 };
