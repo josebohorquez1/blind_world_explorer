@@ -121,7 +121,7 @@ export const initButtons = () => {
             state.location_history.push({lat: state.lat, lon: state.lon});
             const next_intersection_id = state.current_road.road.to;
             const next_intersection = Map.retrieveNode(state.road_data, next_intersection_id);
-            const moving_distance = next_segment.distance;
+            const moving_distance = state.current_road.road.distance;
             state.lat = next_intersection.lat;
             state.lon = next_intersection.lon;
             const next_intersection_ways = state.intersection_graph[next_intersection_id].map(edge => edge.way);
