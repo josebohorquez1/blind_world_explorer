@@ -7,6 +7,7 @@ import * as Utils from "./UtilFunctions.js";
 //Function that loads the road data and returns it
 export const loadRoadData = async (lat, lon, radius_km) => {
     const box = Utils.getBoundingBox(lat, lon, radius_km);
+    console.log(box);
     const query = `
         [out:json][timeout:60];
         way["highway"](${box.south},${box.west},${box.north},${box.east});
@@ -107,6 +108,7 @@ export const getRoadName= (way) => {
     else if (!way.tags.name && way.tags.highway == "service") return "Service Road";
     else if (!way.tags.name && way.tags.highway == "cycleway") return "Bike Path";
     else if (!way.tags.name && way.tags.highway == "residential") return "Residential Street";
+    else if (!way.tags.name && way.tags.ref) return way.tags.ref;
     else return "Road";
 }
 

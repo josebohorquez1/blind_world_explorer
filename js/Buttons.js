@@ -137,6 +137,7 @@ export const initButtons = () => {
             }
             Utils.srAnnounce(document.getElementById("status"), `Current Intersection: ${Map.currentIntersectionTitle(next_intersection_ways)}.<br>Next Intersection: ${upcoming_intersection_string}.<br>${heading_string? heading_string : ""}`);
             state.current_road = {id: next_intersection_id, bearing: new_bearing, road: next_segment};
+            console.log(state.current_road.id);
         }
     });
     document.getElementById("returnPrevious").addEventListener("click", () => {
