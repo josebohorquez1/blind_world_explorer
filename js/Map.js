@@ -39,7 +39,7 @@ export const buildIntersections = (elements) => {
     }
     for (const way of ways) {
         if (way.tags.highway) {
-            if (way.tags.highway == "footway") continue;
+            if (way.tags.highway == "footway" || way.tags.highway == "service") continue;
             for (const node_id of way.nodes) {
                 if (nodes[node_id]) nodes[node_id].ways.push(way);
             }

@@ -55,51 +55,51 @@ export const initButtons = () => {
     document.querySelector("#turnLeft").addEventListener("click", () => {
         if (!state.is_road_mode) state.current_heading = Utils.updateHeading(state.current_heading - state.current_rotation_increment);
         else {
-            const current_node_id = Map.getClosestIntersectionNodeId(state.lat, state.lon, state.intersections);
-            const current_edge = state.intersection_graph[current_node_id];
-            const disired_heading = (state.current_heading - 90 + 360) %360;
-            let best_edge = null;
-            let best_diff = Infinity;
-            let best_bearing = null;
-            for (const edge of current_edge) {
-                const next_node = Map.retrieveNode(state.road_data, edge.to);
-                const bearing = (Utils.getBearing(state.lat, state.lon, next_node.lat, next_node.lon) + 360) % 360;
-                const diff = Math.abs(((bearing - disired_heading + 540) % 360) - 180);
-                if (bearing == state.current_heading) continue;
-                if (diff < best_diff) {
-                    best_diff = diff;
-                    best_edge = edge;
-                    best_bearing = bearing;
+            const current_edge = state.intersection_graph[state.current_road.id];
+            const edge_bearings = current_edge.map(e => {
+                const next_edge_node = Map.retrieveNode(state.road_data, e.to);
+                const bearing = Utils.getBearing(state.lat, state.lon, next_edge_node.lat, next_edge_node.lon);
+                return {edge: e, bearing: bearing};
+            });
+            edge_bearings.sort((a, b) => a.bearing - b.bearing);
+            let smallest_diff = Infinity;
+            let current_edge_index = null;
+            for (let i = 0; i < edge_bearings.length; i++) {
+                const diff = Math.abs(((edge_bearings[i].bearing - state.current_road.bearing + 540) % 360) - 180);
+                if (diff < smallest_diff) {
+                    smallest_diff = diff;
+                    current_edge_index = i;
                 }
             }
-            state.current_heading = Utils.updateHeading(Math.round(best_bearing));
-            state.current_road = {id: current_node_id, bearing: best_bearing, road: best_edge};
-            Utils.srAnnounce(document.getElementById("announcement"), `${state.directions[Math.round(best_bearing / 45) % 8]} on ${Map.getRoadName(best_edge.way)}`)
+            const new_edge = edge_bearings.at(current_edge_index - 1);
+            state.current_heading = Utils.updateHeading(Math.round(new_edge.bearing));
+            state.current_road = {id: state.current_road.id, bearing: new_edge.bearing, road: new_edge.edge};
+            Utils.srAnnounce(document.getElementById("announcement"), `${state.directions[Math.round(new_edge.bearing / 45) % 8]} on ${Map.getRoadName(new_edge.edge.way)}`)
         }
     });
     document.querySelector("#turnRight").addEventListener("click", () => {
         if (!state.is_road_mode) state.current_heading = Utils.updateHeading(state.current_heading + state.current_rotation_increment);
         else {
-            const current_node_id = Map.getClosestIntersectionNodeId(state.lat, state.lon, state.intersections);
-            const current_edge = state.intersection_graph[current_node_id];
-            const disired_heading = (state.current_heading + 90) %360;
-            let best_edge = null;
-            let best_diff = Infinity;
-            let best_bearing = null;
-            for (const edge of current_edge) {
-                const next_node = Map.retrieveNode(state.road_data, edge.to);
-                const bearing = (Utils.getBearing(state.lat, state.lon, next_node.lat, next_node.lon) + 360) % 360;
-                const diff = Math.abs(((bearing - disired_heading + 540) % 360) - 180);
-                if (bearing == state.current_heading) continue;
-                if (diff < best_diff) {
-                    best_diff = diff;
-                    best_edge = edge;
-                    best_bearing = bearing;
+            const current_edge = state.intersection_graph[state.current_road.id];
+            const edge_bearings = current_edge.map(e => {
+                const next_edge_node = Map.retrieveNode(state.road_data, e.to);
+                const bearing = Utils.getBearing(state.lat, state.lon, next_edge_node.lat, next_edge_node.lon);
+                return {edge: e, bearing: bearing};
+            });
+            edge_bearings.sort((a, b) => a.bearing - b.bearing);
+            let smallest_diff = Infinity;
+            let current_edge_index = null;
+            for (let i = 0; i < edge_bearings.length; i++) {
+                const diff = Math.abs(((edge_bearings[i].bearing - state.current_road.bearing + 540) % 360) - 180);
+                if (diff < smallest_diff) {
+                    smallest_diff = diff;
+                    current_edge_index = i;
                 }
             }
-            state.current_heading = Utils.updateHeading(Math.round(best_bearing));
-            state.current_road = {id: current_node_id, bearing: best_bearing, road: best_edge};
-            Utils.srAnnounce(document.getElementById("announcement"), `${state.directions[Math.round(best_bearing / 45) % 8]} on ${Map.getRoadName(best_edge.way)}`)
+            const new_edge = edge_bearings[(current_edge_index + 1) % edge_bearings.length];
+            state.current_heading = Utils.updateHeading(Math.round(new_edge.bearing));
+            state.current_road = {id: state.current_road.id, bearing: new_edge.bearing, road: new_edge.edge};
+            Utils.srAnnounce(document.getElementById("announcement"), `${state.directions[Math.round(new_edge.bearing / 45) % 8]} on ${Map.getRoadName(new_edge.edge.way)}`)
         }
     });
     document.getElementById("turnAround").addEventListener("click", () => state.current_heading = Utils.updateHeading(state.current_heading + 180));
