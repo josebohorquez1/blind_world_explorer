@@ -39,6 +39,7 @@ export const buildIntersections = (elements) => {
     }
     for (const way of ways) {
         if (way.tags.highway) {
+            if (way.tags.highway == "footway") continue;
             for (const node_id of way.nodes) {
                 if (nodes[node_id]) nodes[node_id].ways.push(way);
             }
@@ -59,6 +60,7 @@ export const buildGraph = (data, intersections) => {
     }
     for (const el of data) {
         if (el.type != "way") continue;
+        if (!el.tags.highway) continue;
         const way = el;
         let segment_start = null;
         let distance_traveled = 0;
@@ -136,7 +138,7 @@ export const continueOnSameRoad = (graph, current_intersection_id, edge, incomin
     let best_diff = Infinity;
     for (const e of next_intersection_edges) {
         if (e.to == current_intersection_id) continue;
-        if (e.way.id != edge.way.id && getRoadName(e.way) != getRoadName(edge.way)) continue;
+        //if (e.way.id != edge.way.id && getRoadName(e.way) != getRoadName(edge.way)) continue;
         const to_node = retrieveNode(state.road_data, e.to);
         const intersection_node = retrieveNode(state.road_data, next_intersection);
         const outgoing_bearing = Utils.getBearing(intersection_node.lat, intersection_node.lon, to_node.lat, to_node.lon);
