@@ -113,31 +113,27 @@ export const initButtons = () => {
         Utils.srAnnounce(document.querySelector("#announcement"), `Moved ${Utils.printDistance(state.current_moving_distance)} ${state.directions[Math.round(state.current_heading / 45) % 8]}.`);
         }
         else {
-            const next_segment = Map.continueOnSameRoad(state.intersection_graph, state.current_road.id, state.current_road.road, state.current_road.bearing);
-            if (!next_segment) {
-                Utils.srAnnounce(document.getElementById("announcement"), `Dead end: cannot continue.`);
-                return;
-            }
             state.location_history.push({lat: state.lat, lon: state.lon});
-            const next_intersection_id = state.current_road.road.to;
-            const next_intersection = Map.retrieveNode(state.road_data, next_intersection_id);
-            const moving_distance = state.current_road.road.distance;
+            const current_intersection = Map.retrieveNode(state.road_data, state.current_road.id);
+            const real_intersection = Map.findNextRealIntersection(state.road_data, state.intersection_graph, state.current_road.road, current_intersection, state.current_road.bearing);
+            const next_intersection = real_intersection.intersection;
             state.lat = next_intersection.lat;
             state.lon = next_intersection.lon;
-            const next_intersection_ways = state.intersection_graph[next_intersection_id].map(edge => edge.way);
-            const upcoming_intersection_string = Map.continueOnSameRoad(state.intersection_graph, next_segment.to, next_segment, state.current_road.bearing) ? Map.currentIntersectionTitle(state.intersection_graph[next_segment.to].map(edge => edge.way)) : "Dead end";
-            Utils.srAnnounce(document.getElementById("announcement"), `Moved ${Utils.printDistance(moving_distance)} ${state.directions[Math.round(state.current_road.bearing / 45) % 8]}`);
+            const next_intersection_ways = state.intersection_graph[next_intersection.id].map(edge => edge.way);
+            const upcoming_real_intersection = Map.findNextRealIntersection(state.road_data, state.intersection_graph, real_intersection.segment, next_intersection, real_intersection.bearing);
+            const upcoming_intersection_string = Map.currentIntersectionTitle(state.intersection_graph[upcoming_real_intersection.intersection.id].map(edge => edge.way));
+            const distance = Utils.calculateDistanceBetweenCordinates(current_intersection.lat, current_intersection.lon, next_intersection.lat, next_intersection.lon);
+            Utils.srAnnounce(document.getElementById("announcement"), `Moved ${Utils.printDistance(distance)} ${state.directions[Math.round(state.current_road.bearing / 45) % 8]}`);
             let new_bearing = state.current_road.bearing;
             let heading_string = "";
             if (upcoming_intersection_string != "Dead end") {
-                const upcoming_intersection = Map.retrieveNode(state.road_data, next_segment.to);
+                const upcoming_intersection = upcoming_real_intersection.intersection;
                 new_bearing = Utils.getBearing(next_intersection.lat, next_intersection.lon, upcoming_intersection.lat, upcoming_intersection.lon);
                 state.current_heading = Utils.updateHeading(Math.round(new_bearing));
-                heading_string = `Heading ${state.directions[Math.round(new_bearing /45) % 8]} on ${Map.getRoadName(next_segment.way)}`;
+                heading_string = `Heading ${state.directions[Math.round(new_bearing /45) % 8]} on ${Map.getRoadName(real_intersection.segment.way)}`;
             }
             Utils.srAnnounce(document.getElementById("status"), `Current Intersection: ${Map.currentIntersectionTitle(next_intersection_ways)}.<br>Next Intersection: ${upcoming_intersection_string}.<br>${heading_string? heading_string : ""}`);
-            state.current_road = {id: next_intersection_id, bearing: new_bearing, road: next_segment};
-            console.log(state.current_road.id);
+            state.current_road = {id: real_intersection.intersection.id, bearing: new_bearing, road: real_intersection.segment};
         }
     });
     document.getElementById("returnPrevious").addEventListener("click", () => {

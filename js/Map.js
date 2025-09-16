@@ -7,7 +7,6 @@ import * as Utils from "./UtilFunctions.js";
 //Function that loads the road data and returns it
 export const loadRoadData = async (lat, lon, radius_km) => {
     const box = Utils.getBoundingBox(lat, lon, radius_km);
-    console.log(box);
     const query = `
         [out:json][timeout:60];
         way["highway"](${box.south},${box.west},${box.north},${box.east});
@@ -140,7 +139,6 @@ export const continueOnSameRoad = (graph, current_intersection_id, edge, incomin
     let best_diff = Infinity;
     for (const e of next_intersection_edges) {
         if (e.to == current_intersection_id) continue;
-        //if (e.way.id != edge.way.id && getRoadName(e.way) != getRoadName(edge.way)) continue;
         const to_node = retrieveNode(state.road_data, e.to);
         const intersection_node = retrieveNode(state.road_data, next_intersection);
         const outgoing_bearing = Utils.getBearing(intersection_node.lat, intersection_node.lon, to_node.lat, to_node.lon);
@@ -151,4 +149,29 @@ export const continueOnSameRoad = (graph, current_intersection_id, edge, incomin
         }
     }
     return best_edge;
+};
+
+//Function to help determine if an intersection should be collapsed or not to avoid service roads and non roads
+export const shouldCollapseIntersection = (graph, node_id) => {
+    const is_low_priority = (way) => ["service", "footway", "cycleway", "path", "track"].includes(way.tags.highway);
+    const edges = graph[node_id];
+    const real_roads = edges.filter(e => !is_low_priority(e.way)).map(e => getRoadName(e.way));
+    if (real_roads.length == 2 && real_roads[0] == real_roads[1]) return true;
+    const distinct_roads = [...new Set(real_roads)];
+    return distinct_roads.length == 1;
+}
+
+export const findNextRealIntersection = (data, graph, segment, intersection, bearing) => {
+    let next_intersection = retrieveNode(data, segment.to);
+    let next_segment = continueOnSameRoad(graph, intersection.id, segment, bearing);
+    let new_bearing = bearing;
+            while (shouldCollapseIntersection(graph, next_intersection.id)) {
+                const upcoming_intersection_id = next_segment.to;
+                if (!upcoming_intersection_id) break;
+                const upcoming_intersection = retrieveNode(data, upcoming_intersection_id);
+                new_bearing = Utils.getBearing(next_intersection.lat, next_intersection.lon, upcoming_intersection.lat, upcoming_intersection.lon);
+                next_segment = continueOnSameRoad(graph, next_intersection.id, next_segment, new_bearing);
+                next_intersection = upcoming_intersection;
+            }
+            return {segment: next_segment, intersection: next_intersection, bearing: new_bearing};
 };
