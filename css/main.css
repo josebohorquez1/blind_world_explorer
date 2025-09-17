@@ -30,27 +30,28 @@ header.banner h1 {
 }
 
 /*Make tab bar horizontal*/
-nav #tabBar {
+#tabBar {
     display: flex;
     align-items: center;
     width: 100%;
     border-bottom: 3px solid #000;
 }
 
-nav #tabBar ul {
+#tabBar ul {
     display: flex;
     flex: 1;
+    width: 100%;
     gap: 1.5rem;
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-nav #tabBar ul li {
+#tabBar ul li {
     flex: 1;
 }
 
-nav #tabBar ul li button {
+#tabBar ul li button {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -65,7 +66,94 @@ div.search-area {
     display: none;
 }
 
-div #settings {
+#settings {
     display: none;
 }
 
+/*Main content*/
+#mapContent {
+    display: block;
+    flex-direction: column;
+    flex: 1;
+}
+
+#mainScreen {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+}
+
+#turnButtons ul {
+    display: grid;
+    grid-template-areas: 
+    ". prev ."
+    "left go right"
+    ". around .";
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto auto auto;
+    gap: 1rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+#returnPrevious {
+    grid-area: prev;
+}
+
+#turnLeft {
+    grid-area: left;
+}
+
+#go {
+    grid-area: go;
+}
+
+#turnRight {
+    grid-area: right;
+}
+
+#turnAround {
+    grid-area: around;
+}
+
+#turnButtons button {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+/*Make the zoom buttons horrizontal*/
+#zoomButtons {
+    display: flex;
+    width: 100%;
+    align-items: center;
+}
+
+#zoomButtons ul {
+    display: flex;
+    flex: 1;
+    gap: 1rem;
+    width: 100%;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+#zoomButtons ul li {
+    flex: 1;
+}
+
+#ZoomButtons button {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}

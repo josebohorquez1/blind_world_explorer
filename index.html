@@ -57,26 +57,27 @@
         <p id="settingsAnnouncement" aria-live="polite"></p>
     </div>
     <main id="mapContent">
-            <h2>Let's Explore</h2>
-            <p id="status" aria-live="polite">Loading...</p>
-            <p id="heading" aria-live="polite"></p>
-            <div class="turn-buttons" role="group" aria-label="Turn Buttons">
-                <h3>Let's Move</h3>
-                <ul>
-                    <li><button id="returnPrevious">Return to Previous Point</button></li>
-                <li><button id="turnLeft">Turn Left</button></li>
-                <li><button id="go">go</button></li>
-                <li><button id="turnRight">Turn Right</button></li>
-                <li><button id="turnAround">Turn Around</button></li>
-                </ul>
-            </div>
-            <div class="zoom-buttons" role="group" aria-label="Zoom Buttons">
-                <ul>
-                    <li><button id="zoomIn">Zoom In</button></li>
-                    <li><button id="zoomOut">Zoom Out</button></li>
-                </ul>
-            </div>
-                <p id="announcement" aria-live="polite"></p>
+        <div id="mainScreen">
+                <h2>Let's Explore</h2>
+                <p id="status" aria-live="polite">Loading...</p>
+                <p id="heading" aria-live="polite"></p>
+                <div id="turnButtons" role="group" aria-label="Turn Buttons">
+                    <ul>
+                        <li><button id="returnPrevious">Return to Previous Point</button></li>
+                    <li><button id="turnLeft">Turn Left</button></li>
+                    <li><button id="go">go</button></li>
+                    <li><button id="turnRight">Turn Right</button></li>
+                    <li><button id="turnAround">Turn Around</button></li>
+                    </ul>
+                </div>
+                <div id="zoomButtons" role="group" aria-label="Zoom Buttons">
+                    <ul>
+                        <li><button id="zoomIn">Zoom In</button></li>
+                        <li><button id="zoomOut">Zoom Out</button></li>
+                    </ul>
+                </div>
+                    <p id="announcement" aria-live="polite"></p>
+        </div>
     </main>
         <script type="module" src="js/index.js"></script>
     </body>
