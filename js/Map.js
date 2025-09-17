@@ -161,6 +161,7 @@ export const shouldCollapseIntersection = (graph, node_id) => {
     return distinct_roads.length == 1;
 }
 
+//Function to skip service roads, walking paths, and other trivial roads
 export const findNextRealIntersection = (data, graph, segment, intersection, bearing) => {
     let next_intersection = retrieveNode(data, segment.to);
     let next_segment = continueOnSameRoad(graph, intersection.id, segment, bearing);
@@ -174,4 +175,29 @@ export const findNextRealIntersection = (data, graph, segment, intersection, bea
                 next_intersection = upcoming_intersection;
             }
             return {segment: next_segment, intersection: next_intersection, bearing: new_bearing};
+};
+
+//Function to determine the best edge based on a clock for turning
+export const selectEdgeWhenTurning = (data, graph, intersection_id, incoming_bearing, clock_direction) => {
+    const intersection = retrieveNode(data, intersection_id);
+    const edge = graph[intersection_id];
+    const edge_bearings = edge.map(e => {
+        const next_intersection = retrieveNode(data, e.to);
+        const e_bearing = Utils.getBearing(intersection.lat, intersection.lon, next_intersection.lat, next_intersection.lon);
+        return {edge: e, bearing: e_bearing};
+    }).filter(e => !["service", "footway", "cycleway", "path", "track"].includes(e.edge.way.tags.highway));
+    edge_bearings.sort((a, b) => a.bearing - b.bearing);
+    let smallest_diff = Infinity;
+    let current_index = null;
+    for (let i = 0; i < edge_bearings.length; i++) {
+        const diff = Math.abs(((edge_bearings[i].bearing - incoming_bearing + 540) % 360) - 180);
+        if (diff < smallest_diff) {
+            smallest_diff = diff;
+            current_index = i;
+        }
+    }
+    let new_edge;
+    if (clock_direction == "clockwise") new_edge = edge_bearings[(current_index + 1) % edge_bearings.length];
+    if (clock_direction == "counterclockwise") new_edge = edge_bearings.at(current_index - 1);
+    return {edge: new_edge.edge, bearing: new_edge.bearing};
 };

@@ -55,23 +55,7 @@ export const initButtons = () => {
     document.querySelector("#turnLeft").addEventListener("click", () => {
         if (!state.is_road_mode) state.current_heading = Utils.updateHeading(state.current_heading - state.current_rotation_increment);
         else {
-            const current_edge = state.intersection_graph[state.current_road.id];
-            const edge_bearings = current_edge.map(e => {
-                const next_edge_node = Map.retrieveNode(state.road_data, e.to);
-                const bearing = Utils.getBearing(state.lat, state.lon, next_edge_node.lat, next_edge_node.lon);
-                return {edge: e, bearing: bearing};
-            });
-            edge_bearings.sort((a, b) => a.bearing - b.bearing);
-            let smallest_diff = Infinity;
-            let current_edge_index = null;
-            for (let i = 0; i < edge_bearings.length; i++) {
-                const diff = Math.abs(((edge_bearings[i].bearing - state.current_road.bearing + 540) % 360) - 180);
-                if (diff < smallest_diff) {
-                    smallest_diff = diff;
-                    current_edge_index = i;
-                }
-            }
-            const new_edge = edge_bearings.at(current_edge_index - 1);
+            const new_edge = Map.selectEdgeWhenTurning(state.road_data, state.intersection_graph, state.current_road.id, state.current_road.bearing, "counterclockwise");
             state.current_heading = Utils.updateHeading(Math.round(new_edge.bearing));
             state.current_road = {id: state.current_road.id, bearing: new_edge.bearing, road: new_edge.edge};
             Utils.srAnnounce(document.getElementById("announcement"), `${state.directions[Math.round(new_edge.bearing / 45) % 8]} on ${Map.getRoadName(new_edge.edge.way)}`)
@@ -80,23 +64,7 @@ export const initButtons = () => {
     document.querySelector("#turnRight").addEventListener("click", () => {
         if (!state.is_road_mode) state.current_heading = Utils.updateHeading(state.current_heading + state.current_rotation_increment);
         else {
-            const current_edge = state.intersection_graph[state.current_road.id];
-            const edge_bearings = current_edge.map(e => {
-                const next_edge_node = Map.retrieveNode(state.road_data, e.to);
-                const bearing = Utils.getBearing(state.lat, state.lon, next_edge_node.lat, next_edge_node.lon);
-                return {edge: e, bearing: bearing};
-            });
-            edge_bearings.sort((a, b) => a.bearing - b.bearing);
-            let smallest_diff = Infinity;
-            let current_edge_index = null;
-            for (let i = 0; i < edge_bearings.length; i++) {
-                const diff = Math.abs(((edge_bearings[i].bearing - state.current_road.bearing + 540) % 360) - 180);
-                if (diff < smallest_diff) {
-                    smallest_diff = diff;
-                    current_edge_index = i;
-                }
-            }
-            const new_edge = edge_bearings[(current_edge_index + 1) % edge_bearings.length];
+            const new_edge = Map.selectEdgeWhenTurning(state.road_data, state.intersection_graph, state.current_road.id, state.current_road.bearing, "clockwise");
             state.current_heading = Utils.updateHeading(Math.round(new_edge.bearing));
             state.current_road = {id: state.current_road.id, bearing: new_edge.bearing, road: new_edge.edge};
             Utils.srAnnounce(document.getElementById("announcement"), `${state.directions[Math.round(new_edge.bearing / 45) % 8]} on ${Map.getRoadName(new_edge.edge.way)}`)
