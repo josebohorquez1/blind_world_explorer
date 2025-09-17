@@ -99,27 +99,27 @@ div.search-area {
     justify-content: center;
 }
 
-#returnPrevious {
+#turnButtons ul li:has(#returnPrevious) {
     grid-area: prev;
 }
 
-#turnLeft {
+#turnButtons ul li:has(#turnLeft) {
     grid-area: left;
 }
 
-#go {
+#turnButtons ul li:has(#go) {
     grid-area: go;
 }
 
-#turnRight {
+#turnButtons ul li:has(#turnRight) {
     grid-area: right;
 }
 
-#turnAround {
+#turnButtons ul li:has(#turnAround) {
     grid-area: around;
 }
 
-#turnButtons button {
+#turnButtons ul li button {
     display: flex;
     width: 44px;
     height: 44px;
