@@ -57,6 +57,18 @@
         <p id="settingsAnnouncement" aria-live="polite"></p>
     </div>
     <main id="mapContent">
+        <div id="startScreen" role="region" aria-label="Application Start">
+            <h2>Welcome</h2>
+            <p>his application allows you to explore your surroundings freely or controled via road.</p>
+            <h3>Choose your Location</h3>
+            <p>You can choose your location using your current location, search for location, or start with the default location in New York City, New York.</p>
+            <ul>
+                <li><button id="option_search">Search for location</button></li>
+                <li><button id="option_currentLocation">Use Current Location</button></li>
+                <li><button id="option_default">Go to Default Location: New York City, New York</button></li>
+            </ul>
+            <p id="startScreenError" aria-live="polite"></p>
+        </div>
         <div id="mainScreen">
                 <h2>Let's Explore</h2>
                 <p id="status" aria-live="polite">Loading...</p>

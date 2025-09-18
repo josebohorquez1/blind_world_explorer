@@ -7,51 +7,37 @@ import { initSettingsEvents } from "./Settings.js"; //Holds the events for the d
 import { initButtons } from "./Buttons.js"; //Contains the button events
 
 //Code will fire upon page load
-document.addEventListener("DOMContentLoaded", async () => {
-    let best_position = null; //Holds the best position if current location is allowed
-    let watch_position_id = null; //Hold the wat position id
-    if (navigator.geolocation) { //Does browser support geolocation?
-    watch_position_id = navigator.geolocation.watchPosition((position) => { 
-        document.querySelectorAll("button, input, select").forEach(el => el.disabled = true);
-        const {latitude, longitude, accuracy} = position.coords;
-        if (!best_position || accuracy < best_position.coords.accuracy) best_position = position;
-    }, async (err) => {
-        state.lat = 40.7128;
-        state.lon = -74.0060;
-        Utils.updateStatus(state.lat, state.lon);
-    state.current_heading = Utils.updateHeading(state.current_heading);
-    state.road_data = await Map.loadRoadData(state.lat, state.lon, 8);
-    state.intersections = Map.buildIntersections(state.road_data);
-    state.intersection_graph = Map.buildGraph(state.road_data, state.intersections);
-    }, {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 1000
-    });
-    setTimeout( async () => { //clear watch position after 10 seconds
-        if (watch_position_id) navigator.geolocation.clearWatch(watch_position_id);
-        if (best_position) {
-            const {latitude, longitude, accuracy} = best_position.coords;
-            Utils.updateStatus(latitude, longitude);
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("option_currentLocation").addEventListener("click", () => {
+        if (navigator.geolocation) { //Does browser support geolocation?
+            navigator.geolocation.getCurrentPosition((position) => { 
+            const {latitude, longitude, accuracy} = position.coords;
             state.lat = latitude;
             state.lon = longitude;
-    state.current_heading = Utils.updateHeading(state.current_heading);
-    state.road_data = await Map.loadRoadData(state.lat, state.lon, 8);
-    state.intersections = Map.buildIntersections(state.road_data);
-    state.intersection_graph = Map.buildGraph(state.road_data, state.intersections);
-        }
-        document.querySelectorAll("button, input, select").forEach(el => el.disabled = false);
-        }, 10000);
+            document.querySelector("#startScreen").style.display = "none";
+            document.querySelectorAll("#mainScreen, #tabBar").forEach(el => el.classList.add("active"));
+            state.current_heading = Utils.updateHeading(state.current_heading);
+            Utils.updateStatus(state.lat, state.lon);
+        }, (err) => {
+            Utils.srAnnounce(document.getElementById("startScreenError"), `Error: Could not get current location. Choose another option.`);
+            return;
+        }, {
+            enableHighAccuracy: true,
+        });
     }
     else {
+        Utils.srAnnounce(document.getElementById("startScreenError"), `Error: Browser does not support getting current location.`);
+        return;
+    }
+    });
+    document.getElementById("option_default").addEventListener("click", () => {
         state.lat = 40.7128;
         state.lon = -74.0060;
+        document.querySelector("#startScreen").style.display = "none";
+        document.querySelectorAll("#mainScreen, #tabBar").forEach(el => el.classList.add("active"));
+        state.current_heading = Utils.updateHeading(state.current_heading);
         Utils.updateStatus(state.lat, state.lon);
-    state.current_heading = Utils.updateHeading(state.current_heading);
-    state.road_data = await Map.loadRoadData(state.lat, state.lon, 8);
-    state.intersections = Map.buildIntersections(state.road_data);
-    state.intersection_graph = Map.buildGraph(state.road_data, state.intersections);
-    }
+    });
     initSearchEvent() //Initializes search functionality
     initSettingsEvents() //Initializes settings events
     initButtons(); //Initializes button events

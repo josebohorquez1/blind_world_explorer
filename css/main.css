@@ -31,6 +31,10 @@ header.banner h1 {
 
 /*Make tab bar horizontal*/
 #tabBar {
+    display: none;
+}
+
+#tabBar.active {
     display: flex;
     align-items: center;
     width: 100%;
@@ -78,6 +82,10 @@ div.search-area {
 }
 
 #mainScreen {
+    display: none;
+}
+
+#mainScreen.active {
     display: flex;
     flex-direction: column;
     gap: 3rem;
