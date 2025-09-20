@@ -28,6 +28,37 @@ header.banner h1 {
     color: blue;
     font-size: 2rem;
 }
+/*Start screen*/
+#startScreen {
+    display: none;
+}
+
+#startScreen.active {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+#startScreen ul {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#startScreen ul li button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
+    cursor: pointer;
+}
 
 /*Make tab bar horizontal*/
 #tabBar {

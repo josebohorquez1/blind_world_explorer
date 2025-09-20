@@ -95,12 +95,7 @@ export const retrieveNode = (elements, node_id) => elements.find(el => el.type =
 
 //Function that retrieves the closest node to current location by sorting nodes of intersections by distance and returning the node id
 export const getClosestIntersectionNodeId = (lat, lon, intersections, graph) => {
-    let filtered = 0;
-    const sorted_list = Object.entries(intersections).filter(([node_id, data]) => {
-        const collapsed_intersection = shouldCollapseIntersection(graph, node_id);
-        if (!collapsed_intersection) filtered += 1;
-        return !shouldCollapseIntersection(graph, node_id);}).map(([node_id, data]) => ({id: node_id, distance: Utils.calculateDistanceBetweenCordinates(lat, lon, data.lat, data.lon)})).sort((a, b) => a.distance - b.distance);
-        console.log(filtered);
+    const sorted_list = Object.entries(intersections).filter(([node_id, data]) => !shouldCollapseIntersection(graph, node_id)).map(([node_id, data]) => ({id: node_id, distance: Utils.calculateDistanceBetweenCordinates(lat, lon, data.lat, data.lon)})).sort((a, b) => a.distance - b.distance);
     return sorted_list[0].id;
 }
 
