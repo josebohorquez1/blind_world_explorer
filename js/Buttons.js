@@ -13,7 +13,7 @@ export const initButtons = () => {
         state.is_road_mode = !state.is_road_mode;
         if (state.is_road_mode) {
             e.target.textContent = "Change to Explorer Mode";
-            document.querySelectorAll("#openMovementSettingsButton, #openSearchButton, #zoomButtons button").forEach(el => {
+            document.querySelectorAll("#openMovementSettingsButton, #zoomButtons button").forEach(el => {
                 el.disabled = true;
                 el.textContent += `: Disabled during road mode.`;
             });
@@ -26,7 +26,7 @@ export const initButtons = () => {
                 state.is_road_mode = false;
                 return;
             }
-            const node_id = Map.getClosestIntersectionNodeId(state.lat, state.lon, state.intersections);
+            const node_id = Map.getClosestIntersectionNodeId(state.lat, state.lon, state.intersections, state.intersection_graph);
             const node = Map.retrieveNode(state.road_data, node_id);
             state.lat = node.lat;
             state.lon = node.lon;
@@ -58,7 +58,7 @@ export const initButtons = () => {
         else {
             e.target.textContent = "Change to Road Mode";
             Utils.updateStatus(state.lat, state.lon);
-                        document.querySelectorAll("#openMovementSettingsButton, #openSearchButton, #zoomButtons button").forEach(el => {
+                        document.querySelectorAll("#openMovementSettingsButton, #zoomButtons button").forEach(el => {
                 el.disabled = false;
                 const colon_position = el.textContent.indexOf(":");
                 el.textContent = el.textContent.substring(0, colon_position);
@@ -117,6 +117,7 @@ export const initButtons = () => {
             }
             Utils.srAnnounce(document.getElementById("status"), `Current Intersection: ${Map.currentIntersectionTitle(next_intersection_ways)}.<br>Next Intersection: ${upcoming_intersection_string}.<br>${heading_string? heading_string : ""}`);
             state.current_road = {id: real_intersection.intersection.id, bearing: new_bearing, road: real_intersection.segment};
+            console.log(next_intersection.id);
         }
     });
     document.getElementById("returnPrevious").addEventListener("click", () => {

@@ -94,8 +94,13 @@ export const retrieveWay = (elements, way_id) => elements.find(el => el.type == 
 export const retrieveNode = (elements, node_id) => elements.find(el => el.type == "node" && el.id == node_id);
 
 //Function that retrieves the closest node to current location by sorting nodes of intersections by distance and returning the node id
-export const getClosestIntersectionNodeId = (lat, lon, intersections) => {
-    const sorted_list = Object.entries(intersections).filter(([node_id, data]) => data.ways.some(way => !["service", "footway", "residential", "cycleway"].includes(way.tags.highway))).map(([node_id, data]) => ({id: node_id, distance: Utils.calculateDistanceBetweenCordinates(lat, lon, data.lat, data.lon)})).sort((a, b) => a.distance - b.distance);
+export const getClosestIntersectionNodeId = (lat, lon, intersections, graph) => {
+    let filtered = 0;
+    const sorted_list = Object.entries(intersections).filter(([node_id, data]) => {
+        const collapsed_intersection = shouldCollapseIntersection(graph, node_id);
+        if (!collapsed_intersection) filtered += 1;
+        return !shouldCollapseIntersection(graph, node_id);}).map(([node_id, data]) => ({id: node_id, distance: Utils.calculateDistanceBetweenCordinates(lat, lon, data.lat, data.lon)})).sort((a, b) => a.distance - b.distance);
+        console.log(filtered);
     return sorted_list[0].id;
 }
 
@@ -108,6 +113,14 @@ export const getRoadName= (way) => {
     else if (!way.tags.name && way.tags.highway == "cycleway") return "Bike Path";
     else if (!way.tags.name && way.tags.highway == "residential") return "Residential Street";
     else if (!way.tags.name && way.tags.ref) return way.tags.ref;
+    else if (!way.tags.name && way.tags.junction == "roundabout") return "Roundabout";
+    else if (!way.tags.name && way.tags.highway == "motorway_link") {
+        let hwy_ramp = "Ramp";
+        if (way.tags["junction:ref"]) hwy_ramp = `Offramp - exit ${way.tags["junction:ref"]}`;
+        way.tags["destination:ref"] ? hwy_ramp += ` onto ${way.tags["destination:ref"]}` : "Ramp";
+        way.tags.destination ? hwy_ramp += ` - towards ${way.tags.destination}` : "";
+        return hwy_ramp;
+    }
     else return "Road";
 }
 
@@ -153,9 +166,11 @@ export const continueOnSameRoad = (graph, current_intersection_id, edge, incomin
 
 //Function to help determine if an intersection should be collapsed or not to avoid service roads and non roads
 export const shouldCollapseIntersection = (graph, node_id) => {
-    const is_low_priority = (way) => ["service", "footway", "cycleway", "path", "track"].includes(way.tags.highway);
+    const is_low_priority = (way) => ["service", "footway", "cycleway", "path", "track", "primary_link", "secondary_link"].includes(way.tags.highway);
     const edges = graph[node_id];
+    if (!edges) return true;
     const real_roads = edges.filter(e => !is_low_priority(e.way)).map(e => getRoadName(e.way));
+    if (real_roads.length == 0) return true;
     if (real_roads.length == 2 && real_roads[0] == real_roads[1]) return true;
     const distinct_roads = [...new Set(real_roads)];
     return distinct_roads.length == 1;
