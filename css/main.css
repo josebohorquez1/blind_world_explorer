@@ -49,6 +49,10 @@ header.banner h1 {
     list-style: none;
 }
 
+#startScreen.active ul li {
+    display: inline-flex;
+}
+
 #startScreen.active ul li button {
     display: flex;
     align-items: center;

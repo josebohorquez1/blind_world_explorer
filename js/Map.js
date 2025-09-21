@@ -39,7 +39,6 @@ export const buildIntersections = (elements) => {
     }
     for (const way of ways) {
         if (way.tags.highway) {
-            if (way.tags.highway == "footway" || way.tags.highway == "service") continue;
             for (const node_id of way.nodes) {
                 if (nodes[node_id]) nodes[node_id].ways.push(way);
             }
@@ -58,32 +57,45 @@ export const buildGraph = (data, intersections) => {
     for (const el of data) {
         if (el.type == "node") nodes[el.id] = el;
     }
-    for (const el of data) {
-        if (el.type != "way") continue;
-        if (!el.tags.highway) continue;
-        const way = el;
+    for (const element of data) {
+        //1. If element is not a way, or if the way is not a highway, skip it.
+        if (element.type != "way" || !element.tags.highway) continue;
+        //2. Walk along each nodes minus the last one
+        const way = element;
         let segment_start = null;
         let distance_traveled = 0;
-        for (let i = 0; i < way.nodes.length - 1; i++) {
-            const node_id = way.nodes[i];
+        for (let i = 0; i < way.nodes.length - 1; ++i) {
+            //a. Get the first current node ID and next node ID along the way.
+            const current_node_id = way.nodes[i];
             const next_node_id = way.nodes[i + 1];
+            //B. If the next node does not exist, stop. We reached the end of the segment
             if (!next_node_id) break;
-            const dist = Utils.calculateDistanceBetweenCordinates(nodes[node_id].lat, nodes[node_id].lon, nodes[next_node_id].lat, nodes[next_node_id].lon);
-            distance_traveled += dist;
-            if (intersections[node_id] && segment_start == null) {
-                segment_start = node_id;
+            //C. If the current node is a intersection, and if we haven't started a segment, start a segment and set distance to 0.
+            if (intersections[current_node_id] && segment_start == null) {
+                segment_start = current_node_id;
                 distance_traveled = 0;
             }
+            //D. Get the current node and next node and calculate the distance between the current node and next node if the nodes exist.
+            const current_node = nodes[current_node_id];
+            const nex_node = nodes[next_node_id];
+            if (current_node && nex_node) {
+                distance_traveled += Utils.calculateDistanceBetweenCordinates(current_node.lat, current_node.lon, nex_node.lat, nex_node.lon)
+            }
+            //E. if the next node ID is an intersection and we have started a segment, end the segment by forming the connection, start a new segment, and reset distance traveled.
             if (intersections[next_node_id] && segment_start != null) {
+                //I. If the edge for the current node does not exist, create it with an empty list.
                 if (!graph[segment_start]) graph[segment_start] = [];
+                //II. If the edge for the next node does not exist, create it as well.
                 if (!graph[next_node_id]) graph[next_node_id] = [];
+                //III. Push the new connection between first and second node and second node and first node.
                 graph[segment_start].push({to: next_node_id, way: way, distance: distance_traveled});
                 graph[next_node_id].push({to: segment_start, way: way, distance: distance_traveled});
-                segment_start = next_node_id;
+                //IV. Reset for the next walk by reseting distance and starting segment at the next intersection node ID.
                 distance_traveled = 0;
+                segment_start = next_node_id;
             }
-        }
     }
+}
     return graph;
 }
 //Function to ensure that there is enough data to work with.
@@ -95,7 +107,7 @@ export const loadEnoughData = async (lat, lon) => {
         road_data = await loadRoadData(lat, lon, radius_km);
         intersections = buildIntersections(road_data);
         intersection_count = Object.keys(intersections).length;
-        if (intersection_count >= 1000) break;
+        if (intersection_count >= 5000) break;
         radius_km *= 2;
     }
     return {intersections: intersections, data: road_data};
@@ -187,20 +199,35 @@ export const shouldCollapseIntersection = (graph, node_id) => {
 
 //Function to skip service roads, walking paths, and other trivial roads
 export const findNextRealIntersection = (data, graph, segment, intersection, bearing) => {
-    if (!segment.to) return null;
-    let next_intersection = retrieveNode(data, segment.to);
-    let next_segment = continueOnSameRoad(graph, intersection.id, segment, bearing);
-    if (!next_segment) return null;
-    let new_bearing = bearing;
-            while (shouldCollapseIntersection(graph, next_intersection.id)) {
-                const upcoming_intersection_id = next_segment.to;
-                if (!upcoming_intersection_id) break;
-                const upcoming_intersection = retrieveNode(data, upcoming_intersection_id);
-                new_bearing = Utils.getBearing(next_intersection.lat, next_intersection.lon, upcoming_intersection.lat, upcoming_intersection.lon);
-                next_segment = continueOnSameRoad(graph, next_intersection.id, next_segment, new_bearing);
-                next_intersection = upcoming_intersection;
-            }
-            return {segment: next_segment, intersection: next_intersection, bearing: new_bearing};
+    //1. Get next intersection based on the current segment, and if intersection has no next intersection or if dead end is true, then stop searching and return.
+    let current_intersection_id = intersection.id;
+    let current_intersection = intersection;
+    let current_bearing = bearing;
+    let current_segment= segment;
+    let distance = segment.distance;
+    let next_intersection_id = segment.to;
+    if (!graph[next_intersection_id] || graph[next_intersection_id].dead_end) return {segment: current_segment, intersection: current_intersection, bearing: current_bearing, distance: distance};
+    let next_intersection = retrieveNode(data, next_intersection_id);
+    let next_segment_data = getBestSegmentByAngularDifference(data, graph[next_intersection_id], next_intersection_id, current_bearing);
+    let next_segment = next_segment_data.segment;
+    let next_bearing = next_segment_data.bearing;
+    //2. if the next intersection should collapse, move to the next intersection, find the next best segment, retrieve the next upcoming intersection, and add distance based on the bearing between the current intersection and next intersection
+    while (shouldCollapseIntersection(graph, next_intersection_id)) {
+    current_intersection_id = next_intersection_id;
+    current_intersection = next_intersection;
+    current_bearing = next_bearing;
+    current_segment= next_segment;
+    distance += current_segment.distance;
+    next_intersection_id = current_segment.to;
+    if (!graph[next_intersection_id] || graph[next_intersection_id].dead_end) return {segment: current_segment, intersection: retrieveNode(data, next_intersection_id), bearing: current_bearing, distance: distance};
+    next_intersection = retrieveNode(data, next_intersection_id);
+    next_segment_data = getBestSegmentByAngularDifference(data, graph[next_intersection_id], next_intersection_id, current_bearing);
+    next_segment = next_segment_data.segment;
+    next_bearing = next_segment_data.bearing;
+    }
+    console.log(current_bearing);
+    console.log(next_bearing);
+            return {segment: current_segment, intersection: next_intersection, bearing: current_bearing, distance: distance};
 };
 
 //Function to determine the best edge based on a clock for turning
@@ -227,3 +254,21 @@ export const selectEdgeWhenTurning = (data, graph, intersection_id, incoming_bea
     if (clock_direction == "counterclockwise") new_edge = edge_bearings.at(current_index - 1);
     return {edge: new_edge.edge, bearing: new_edge.bearing};
 };
+
+export const getBestSegmentByAngularDifference = (data, edge, current_intersection_id, current_bearing) => {
+    let best_bearing = current_bearing;
+    let best_segment = null;
+    let smallest_diff = Infinity;
+    for (const e of edge) {
+        const current_intersection = retrieveNode(data, current_intersection_id);
+        const next_intersection = retrieveNode(data, e.to);
+        const new_bearing = Math.round(Utils.getBearing(current_intersection.lat, current_intersection.lon, next_intersection.lat, next_intersection.lon));
+        const diff = Math.abs(((new_bearing - current_bearing + 540) % 360) - 180);
+        if (diff < smallest_diff) {
+            smallest_diff = diff;
+            best_segment = e;
+            best_bearing = new_bearing;
+        }
+    }
+    return {segment: best_segment, bearing: best_bearing};
+}
