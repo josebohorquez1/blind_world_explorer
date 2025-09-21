@@ -91,7 +91,7 @@ export const loadEnoughData = async (lat, lon) => {
     let radius_km = 5;
     let intersection_count = 0;
     let road_data, intersections;
-    while (intersection_count < 1000 && radius_km <= 50) {
+    while (intersection_count < 5000 && radius_km <= 50) {
         road_data = await loadRoadData(lat, lon, radius_km);
         intersections = buildIntersections(road_data);
         intersection_count = Object.keys(intersections).length;
@@ -190,6 +190,7 @@ export const findNextRealIntersection = (data, graph, segment, intersection, bea
     if (!segment.to) return null;
     let next_intersection = retrieveNode(data, segment.to);
     let next_segment = continueOnSameRoad(graph, intersection.id, segment, bearing);
+    if (!next_segment) return null;
     let new_bearing = bearing;
             while (shouldCollapseIntersection(graph, next_intersection.id)) {
                 const upcoming_intersection_id = next_segment.to;

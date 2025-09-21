@@ -46,13 +46,14 @@ export const initButtons = () => {
             for (const e of edge) {
                 const next_intersection = Map.retrieveNode(state.road_data, e.to);
                 const new_bearing = Math.round(Utils.getBearing(state.lat, state.lon, next_intersection.lat, next_intersection.lon));
-                const diff = Math.abs((new_bearing - bearing + 360) % 360);
+                const diff = Math.abs(((new_bearing - bearing + 540) % 360) - 180);
                 if (diff < smallest_diff) {
                     smallest_diff = diff;
                     best_segment = e;
                     bearing = new_bearing;
                 }
             }
+            state.current_heading = Utils.updateHeading(Math.round(bearing));
             announcements += `
             <p>Heading ${bearing} degrees ${state.directions[Math.round(bearing / 45) % 8]} on ${Map.getRoadName(best_segment.way)}</p>`;
             //Update current road
@@ -73,7 +74,7 @@ export const initButtons = () => {
         }
         else {
             e.target.textContent = "Change to Road Mode";
-            Utils.srAnnounce(document.getElementById("announcements"), `<p> ${Utils.updateStatus(state.lat, state.lon)}</p>`);
+            Utils.srAnnounce(document.getElementById("announcements"), `<p> ${await Utils.updateStatus(state.lat, state.lon)}</p>`);
                         document.querySelectorAll("#openMovementSettingsButton, #zoomButtons button").forEach(el => {
                 el.disabled = false;
                 const colon_position = el.textContent.indexOf(":");
@@ -152,9 +153,10 @@ export const initButtons = () => {
             //2. Announce new intersection along with distance moved.
             const distance = Utils.calculateDistanceBetweenCordinates(current_intersection.lat, current_intersection.lon, next_intersection.lat, next_intersection.lon);
             const next_edge = state.intersection_graph[next_intersection.id];
+            state.current_heading = Utils.updateHeading(Math.round(next_intersection_data.bearing));
             announcements += `<p>Moved ${Utils.printDistance(distance)} ${state.directions[Math.round(state.current_road.bearing / 45) % 8]}</p>
             <p>Current intersection: ${Map.currentIntersectionTitle(next_edge.map(e => e.way))}.</p>
-            <p>Heading ${next_intersection_data.bearing} degrees ${state.directions[Math.round(next_intersection_data.bearing / 45) % 8]} on ${Map.getRoadName(next_intersection_data.segment.way)}.</p>`;
+            <p>Heading ${state.current_heading} degrees ${state.directions[Math.round(state.current_heading / 45) % 8]} on ${Map.getRoadName(next_intersection_data.segment.way)}.</p>`;
             state.current_road = {id: next_intersection.id, bearing: next_intersection_data.bearing, road: next_intersection_data.segment};
             //3. Announce upcoming intersection and distance
             const upcoming_intersection_data = Map.findNextRealIntersection(state.road_data, state.intersection_graph, next_intersection_data.segment, next_intersection, next_intersection_data.bearing);
