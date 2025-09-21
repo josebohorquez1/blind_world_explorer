@@ -72,8 +72,6 @@
         </div>
         <div id="mainScreen">
                 <h2>Let's Explore</h2>
-                <p id="status" aria-live="polite">Loading...</p>
-                <p id="heading" aria-live="polite"></p>
                 <div id="turnButtons" role="group" aria-label="Turn Buttons">
                     <ul>
                         <li><button id="returnPrevious">Return to Previous Point</button></li>
@@ -89,7 +87,7 @@
                         <li><button id="zoomOut">Zoom Out</button></li>
                     </ul>
                 </div>
-                    <p id="announcement" aria-live="polite"></p>
+                    <div id="announcements" role="group" aria-label="Announcements" aria-live="polite"></div>
         </div>
     </main>
         <script type="module" src="js/index.js"></script>

@@ -39,10 +39,9 @@ header.banner h1 {
     gap: 1rem;
 }
 
-#startScreen ul {
+#startScreen.active ul {
     display: flex;
     flex-direction: column;
-    width: 100%;
     align-items: center;
     gap: 1rem;
     margin: 0;
@@ -50,7 +49,7 @@ header.banner h1 {
     list-style: none;
 }
 
-#startScreen ul li button {
+#startScreen.active ul li button {
     display: flex;
     align-items: center;
     justify-content: center;

@@ -86,6 +86,20 @@ export const buildGraph = (data, intersections) => {
     }
     return graph;
 }
+//Function to ensure that there is enough data to work with.
+export const loadEnoughData = async (lat, lon) => {
+    let radius_km = 5;
+    let intersection_count = 0;
+    let road_data, intersections;
+    while (intersection_count < 1000 && radius_km <= 50) {
+        road_data = await loadRoadData(lat, lon, radius_km);
+        intersections = buildIntersections(road_data);
+        intersection_count = Object.keys(intersections).length;
+        if (intersection_count >= 1000) break;
+        radius_km *= 2;
+    }
+    return {intersections: intersections, data: road_data};
+};
 
 //Function to retrieve a way
 export const retrieveWay = (elements, way_id) => elements.find(el => el.type == "way" && el.id == way_id);
@@ -173,6 +187,7 @@ export const shouldCollapseIntersection = (graph, node_id) => {
 
 //Function to skip service roads, walking paths, and other trivial roads
 export const findNextRealIntersection = (data, graph, segment, intersection, bearing) => {
+    if (!segment.to) return null;
     let next_intersection = retrieveNode(data, segment.to);
     let next_segment = continueOnSameRoad(graph, intersection.id, segment, bearing);
     let new_bearing = bearing;

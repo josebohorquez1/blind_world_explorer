@@ -8,14 +8,17 @@ import * as Utils from "./UtilFunctions.js";
 export const initStartScreen = () => {
     document.getElementById("option_currentLocation").addEventListener("click", () => {
         if (navigator.geolocation) { //Does browser support geolocation?
-            navigator.geolocation.getCurrentPosition((position) => { 
+            navigator.geolocation.getCurrentPosition( async (position) => {
             const {latitude, longitude, accuracy} = position.coords;
             state.lat = latitude;
             state.lon = longitude;
             document.querySelector("#startScreen").classList.remove("active");
             document.querySelectorAll("#mainScreen, #tabBar").forEach(el => el.classList.add("active"));
+            const description = await Utils.updateStatus(state.lat, state.lon);
             state.current_heading = Utils.updateHeading(state.current_heading);
-            Utils.updateStatus(state.lat, state.lon);
+            Utils.srAnnounce(document.getElementById("announcements"), `
+            <p>${description}</p>
+            <p>Heading ${state.current_heading} degrees ${state.directions[Math.round(state.current_heading / 45) % 8]}`);
         }, (err) => {
             Utils.srAnnounce(document.getElementById("startScreenError"), `Error: Could not get current location. Choose another option.`);
             return;
@@ -28,15 +31,18 @@ export const initStartScreen = () => {
         return;
     }
     });
-    document.getElementById("option_default").addEventListener("click", () => {
+    document.getElementById("option_default").addEventListener("click", async () => {
         state.lat = 40.7128;
         state.lon = -74.0060;
         document.querySelector("#startScreen").classList.remove("active");
         document.querySelectorAll("#mainScreen, #tabBar").forEach(el => el.classList.add("active"));
-        state.current_heading = Utils.updateHeading(state.current_heading);
-        Utils.updateStatus(state.lat, state.lon);
+            const description = await Utils.updateStatus(state.lat, state.lon);
+            state.current_heading = Utils.updateHeading(state.current_heading);
+            Utils.srAnnounce(document.getElementById("announcements"), `
+            <p>${description}</p>
+            <p>Heading ${state.current_heading} degrees ${state.directions[Math.round(state.current_heading / 45) % 8]}`);
     });
-    document.getElementById("option_coords").addEventListener("click", () => {
+    document.getElementById("option_coords").addEventListener("click", async () => {
         const input = prompt(`Enter location coordinates. Examples include 29.333,21.44 or -29.777,-82.444`);
         if (!input || !input.trim()) {
             Utils.srAnnounce(document.getElementById("startScreenError"), `Error: No coordinates entered.`);
@@ -61,7 +67,10 @@ export const initStartScreen = () => {
         state.lon = lon;
         document.querySelector("#startScreen").classList.remove("active");
         document.querySelectorAll("#mainScreen, #tabBar").forEach(el => el.classList.add("active"));
-        state.current_heading = Utils.updateHeading(state.current_heading);
-        Utils.updateStatus(state.lat, state.lon);
+            const description = await Utils.updateStatus(state.lat, state.lon);
+            state.current_heading = Utils.updateHeading(state.current_heading);
+            Utils.srAnnounce(document.getElementById("announcements"), `
+            <p>${description}</p>
+            <p>Heading ${state.current_heading} degrees ${state.directions[Math.round(state.current_heading / 45) % 8]}`);
     });
 }

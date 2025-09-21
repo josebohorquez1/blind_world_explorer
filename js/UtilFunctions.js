@@ -14,7 +14,7 @@ export const updateStatus = async (lat, lon) => {
     catch {
         description = `Current Location: ${lat}, ${lon}`;
     }
-    srAnnounce(document.getElementById("status"), description);
+    return description;
 };
 
 //Function to announce updates to screen readers
@@ -34,7 +34,6 @@ export const printDistance = (distance_in_meters) => {
 //Function to update current heading direction and normalize the heading from 0-359
 export const updateHeading = (heading) => {
     let new_heading = (heading + 360) % 360;
-    srAnnounce(document.getElementById("heading"), `Heading: ${new_heading} degrees ${state.directions[Math.round(new_heading / 45) % 8]}`);
     return new_heading;
 };
 
