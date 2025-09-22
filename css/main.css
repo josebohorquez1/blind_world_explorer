@@ -39,6 +39,13 @@ header.banner h1 {
     gap: 1rem;
 }
 
+#startScreen.active h2, #startScreen.active h3 {
+    font-size: 1.5rem;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
 #startScreen.active ul {
     display: flex;
     flex-direction: column;
@@ -50,7 +57,8 @@ header.banner h1 {
 }
 
 #startScreen.active ul li {
-    display: inline-flex;
+    display: flex;
+    justify-content: center;
 }
 
 #startScreen.active ul li button {
@@ -110,7 +118,7 @@ div.search-area {
 
 /*Main content*/
 #mapContent {
-    display: block;
+    display: flex;
     flex-direction: column;
     flex: 1;
 }
@@ -123,6 +131,13 @@ div.search-area {
     display: flex;
     flex-direction: column;
     gap: 3rem;
+}
+
+#mainScreen.active h2 {
+    font-size: 1.5rem;
+    text-align: center;
+    margin: 0;
+    padding: 0;
 }
 
 #turnButtons ul {
