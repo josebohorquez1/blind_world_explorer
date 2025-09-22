@@ -206,7 +206,7 @@ export const findNextRealIntersection = (data, graph, segment, intersection, bea
     let current_segment= segment;
     let distance = segment.distance;
     let next_intersection_id = segment.to;
-    if (!graph[next_intersection_id] || graph[next_intersection_id].dead_end) return {segment: current_segment, intersection: current_intersection, bearing: current_bearing, distance: distance};
+    if (!graph[next_intersection_id]) return {segment: current_segment, intersection: current_intersection, bearing: current_bearing, distance: distance};
     let next_intersection = retrieveNode(data, next_intersection_id);
     let next_segment_data = getBestSegmentByAngularDifference(data, graph[next_intersection_id], next_intersection_id, current_bearing);
     let next_segment = next_segment_data.segment;
@@ -225,9 +225,7 @@ export const findNextRealIntersection = (data, graph, segment, intersection, bea
     next_segment = next_segment_data.segment;
     next_bearing = next_segment_data.bearing;
     }
-    console.log(current_bearing);
-    console.log(next_bearing);
-            return {segment: current_segment, intersection: next_intersection, bearing: current_bearing, distance: distance};
+            return {segment: next_segment, intersection: next_intersection, bearing: next_bearing, distance: distance};
 };
 
 //Function to determine the best edge based on a clock for turning
