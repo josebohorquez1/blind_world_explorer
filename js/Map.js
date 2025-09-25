@@ -127,6 +127,7 @@ export const getClosestIntersectionNodeId = (lat, lon, intersections, graph) => 
 
 //Function to retrieve the name of a road
 export const getRoadName= (way) => {
+    if (way.tags.name && way.tags.ref) return `${way.tags.name} / ${way.tags.ref}`;
     if (way.tags.name) return way.tags.name;
     else if (!way.tags.name && way.tags.highway == "service") return "Service Road";
     else if (!way.tags.name && way.tags.highway == "footway") return "Walking Path";
