@@ -59,7 +59,14 @@ const new_lon = lon2 * deg;
 return {lat: new_lat, lon: new_lon};
 };
 
-//Calculates the distance between coordinates
+/**
+ * Haversine distance between two lat/lon points, in meters.
+ * @param {number} lat1
+ * @param {number} lon1
+ * @param {number} lat2
+ * @param {number} lon2
+ * @returns {number} distance in meters
+ */
 export const calculateDistanceBetweenCordinates = (lat1, lon1, lat2, lon2) => {
     const R = 6371000;
     const toRad = x => x * Math.PI / 180;
@@ -104,3 +111,21 @@ export const getBoundingBox = (center_lat, center_lon, radius_km) => {
     };
 };
 
+/**
+ * Returns a cardinal direction label (N, NE, E, SE, S, SW, W, NW)
+ * from one lat/lon to another.
+ * @param {number} fromLat
+ * @param {number} fromLon
+ * @param {number} toLat
+ * @param {number} toLon
+ * @returns {string}
+ */
+export const cardinalDirection = (fromLat, fromLon, toLat, toLon) => {
+    dLat = toLat - fromLat;
+    const dLon = toLon - fromLon;
+    const angle = (Math.atan2(dLon, dLat) * 180) / Math.PI;
+    const normalized = (angle + 360) % 360;
+    const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    const index = Math.round((normalized / 45) % 8);
+    return {cardinal: dirs[index], angle: normalized};
+};

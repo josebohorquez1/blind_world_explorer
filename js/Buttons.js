@@ -49,7 +49,7 @@ export const initButtons = () => {
             //Update current road
             state.current_road = {id: closest_intersection.id, bearing: bearing, road: best_segment};
             //3. Find next intersection based on the selected segment along with the distance and announce it.
-            const next_intersection_data = Map.findNextRealIntersection(state.road_data, state.intersection_graph, best_segment, closest_intersection, bearing);
+            const next_intersection_data = await Map.findNextRealIntersection(state.road_data, state.intersection_graph, best_segment, closest_intersection, bearing);
             /*if (next_intersection_data.intersection.id == best_segment.to) {
                 announcements += `<p>Next intersection: Dead end.`;
                 Utils.srAnnounce(document.getElementById("announcements"), announcements);
@@ -74,7 +74,7 @@ export const initButtons = () => {
     });
 
     //Turn buttons
-    document.querySelector("#turnLeft").addEventListener("click", () => {
+    document.querySelector("#turnLeft").addEventListener("click", async () => {
         if (!state.is_road_mode) {
             state.current_heading = Utils.updateHeading(state.current_heading - state.current_rotation_increment);
             Utils.srAnnounce(document.getElementById("announcements"), `<p>Heading ${state.current_heading} degrees ${state.directions[Math.round(state.current_heading / 45) % 8]}</p>`);
@@ -88,14 +88,14 @@ export const initButtons = () => {
             //2. Announce turn and next intersection along with distance.
             announcements += `<p>Heading ${state.current_heading} degrees ${state.directions[Math.round(new_edge.bearing / 45) % 8]} on ${Map.getRoadName(new_edge.edge.way)}</p>`;
             const current_intersection = Map.retrieveNode(state.road_data, state.current_road.id);
-            const next_intersection_data = Map.findNextRealIntersection(state.road_data, state.intersection_graph, new_edge.edge, current_intersection, new_edge.bearing);
+            const next_intersection_data = await Map.findNextRealIntersection(state.road_data, state.intersection_graph, new_edge.edge, current_intersection, new_edge.bearing);
             const next_edge = state.intersection_graph[next_intersection_data.intersection.id];
             const distance = Utils.calculateDistanceBetweenCordinates(current_intersection.lat, current_intersection.lon, next_intersection_data.intersection.lat, next_intersection_data.intersection.lon);
             announcements += `<p>Next intersection: ${Map.currentIntersectionTitle(next_edge.map(e => e.way))} ${Utils.printDistance(distance)} away.</p>`;
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
         }
     });
-    document.querySelector("#turnRight").addEventListener("click", () => {
+    document.querySelector("#turnRight").addEventListener("click", async () => {
         if (!state.is_road_mode) {
             state.current_heading = Utils.updateHeading(state.current_heading + state.current_rotation_increment);
             Utils.srAnnounce(document.getElementById("announcements"), `<p>Heading ${state.current_heading} degrees ${state.directions[Math.round(state.current_heading / 45) % 8]}</p>`);
@@ -109,7 +109,7 @@ export const initButtons = () => {
             //2. Announce turn and next intersection along with distance.
             announcements += `<p>Heading ${state.current_heading} degrees ${state.directions[Math.round(new_edge.bearing / 45) % 8]} on ${Map.getRoadName(new_edge.edge.way)}</p>`;
             const current_intersection = Map.retrieveNode(state.road_data, state.current_road.id);
-            const next_intersection_data = Map.findNextRealIntersection(state.road_data, state.intersection_graph, new_edge.edge, current_intersection, new_edge.bearing);
+            const next_intersection_data = await Map.findNextRealIntersection(state.road_data, state.intersection_graph, new_edge.edge, current_intersection, new_edge.bearing);
             const next_edge = state.intersection_graph[next_intersection_data.intersection.id];
             const distance = Utils.calculateDistanceBetweenCordinates(current_intersection.lat, current_intersection.lon, next_intersection_data.intersection.lat, next_intersection_data.intersection.lon);
             announcements += `<p>Next intersection: ${Map.currentIntersectionTitle(next_edge.map(e => e.way))} ${Utils.printDistance(distance)} away.</p>`;
@@ -132,7 +132,7 @@ export const initButtons = () => {
             state.location_history.push({lat: state.lat, lon: state.lon});
             //1. Find current intersection, next intersection, and then move to the new location.
             const current_intersection = Map.retrieveNode(state.road_data, state.current_road.id);
-            const next_intersection_data = Map.findNextRealIntersection(state.road_data, state.intersection_graph, state.current_road.road, current_intersection, state.current_road.bearing);
+            const next_intersection_data = await Map.findNextRealIntersection(state.road_data, state.intersection_graph, state.current_road.road, current_intersection, state.current_road.bearing);
             if (next_intersection_data.intersection.id == state.current_road.id) {
                 Utils.srAnnounce(document.getElementById("announcements"), `<p>Cannot continue in this direction.</p>`);
                 return;
@@ -149,7 +149,7 @@ export const initButtons = () => {
             <p>Heading ${state.current_heading} degrees ${state.directions[Math.round(state.current_heading / 45) % 8]} on ${Map.getRoadName(next_intersection_data.segment.way)}.</p>`;
             state.current_road = {id: next_intersection.id, bearing: next_intersection_data.bearing, road: next_intersection_data.segment};
             //3. Announce upcoming intersection and distance
-            const upcoming_intersection_data = Map.findNextRealIntersection(state.road_data, state.intersection_graph, next_intersection_data.segment, next_intersection, next_intersection_data.bearing);
+            const upcoming_intersection_data = await Map.findNextRealIntersection(state.road_data, state.intersection_graph, next_intersection_data.segment, next_intersection, next_intersection_data.bearing);
             /*if (upcoming_intersection_data == null) {
                 announcements += `<p>Next intersection: dead end.</p>`
                 Utils.srAnnounce(document.getElementById("announcements"), announcements);

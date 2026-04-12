@@ -1,273 +1,420 @@
-//File containing the functions to retrieve map data for the application
+/**
+ * map.js
+ *
+ * Builds a navigable street graph from OpenStreetMap data via the Overpass API.
+ * Designed for a nonvisual intersection explorer (screen reader friendly).
+ *
+ * Classes:
+ *   Street          -- a named road segment between two intersections
+ *   Intersection    -- an OSM node where two or more named streets meet
+ *   IntersectionGraph -- the full graph; handles fetching, parsing, and traversal
+ */
 
-//Importing utility functions, and app state
-import { state } from "./state.js";
+//Modules
 import * as Utils from "./UtilFunctions.js";
 
-//Function that loads the road data and returns it
-export const loadRoadData = async (lat, lon, radius_km) => {
-    const box = Utils.getBoundingBox(lat, lon, radius_km);
-    const query = `
-        [out:json][timeout:60];
-        way["highway"](${box.south},${box.west},${box.north},${box.east});
-        out body;
-        node(w);
-        out body;`;
-        const url = "https://overpass-api.de/api/interpreter";
-        try {
-            const res = await fetch(url, {
-                method: "POST",
-                body: query
-            });
-            if (!res.ok) throw new Error(`Overpass API error: ${res.status}`);
-            const data = await res.json();
-            return data.elements;
-        } catch (err) {
-            console.error("Failed to load Overpass data:", err);
-            return null;
-        }
-};
+//Constants
+const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
+const EXCLUDED_HIGHWAY_TYPES = new Set([
+  "footway",
+  "path",
+  "cycleway",
+  "bridleway",
+  "steps",
+  "corridor",
+  "sidewalk",
+  "track",
+]);
 
-//Builds intersections by finding nodes that are linked to two or more ways
-export const buildIntersections = (elements) => {
-    const nodes = {};
-    const ways = [];
-    const intersections = {};
+/**
+ * Represents a named road segment (OSM Way) connecting two intersections.
+ *
+ * Properties:
+ *   id          {string}   OSM way ID
+ *   name        {string}   Road name (e.g. "University Avenue")
+ *   ref         {string}   Road reference number if any (e.g. "US-441")
+ *   highwayType {string}   OSM highway tag value (e.g. "residential")
+ *   nodeIds     {string[]} Ordered list of OSM node IDs along this way
+ */
+export class Street {
+      /**
+   * @param {object} osmWay  Raw OSM way element from Overpass JSON
+   */
+  constructor(osmWay) {
+    this.id = String(osmWay.id);
+    this.name = osmWay.tags?.name || null;
+    this.ref = osmWay.tags?.ref || null;
+    this.highwayType = osmWay.tags?.highway || "road";
+    this.nodeIds = (osmWay.nodes || []).map(String);
+  }
+
+    /**
+   * Returns the display label for this street, ref - name will be used if ref is available.
+   * @returns {string}
+   */
+  get label() {
+    if (this.name && this.ref) return `${this.ref} / ${this.name}`;
+    if (this.name) return this.name;
+    if (this.ref) return this.ref;
+    return "Road";
+  }
+
+    /**
+   * Given one endpoint node ID, returns the other endpoint node ID
+   * along this street's node sequence.
+   *
+   * This is used to traverse: starting from intersection A on this street,
+   * what is the next intersection in that direction?
+   *
+   * @param {string} fromNodeId  Starting node ID
+   * @returns {string|null}       The other end node ID, or null if not found
+   */
+  otherEndFrom(fromNodeId) {
+    if (this.nodeIds[0] === fromNodeId) return this.nodeIds[this.nodeIds.length - 1];
+    if (this.nodeIds[this.nodeIds.length - 1] === fromNodeId) return this.nodeIds[0];
+    return null;
+  }
+
+  /**
+   * Returns whether a given node ID is one of the endpoints of this street
+   * (i.e., first or last node in the sequence).
+   * @param {string} nodeId
+   * @returns {boolean}
+   */
+    isEndpoint(nodeId) {
+        return (
+            this.nodeIds[0] === nodeId
+            || this.nodeIds[this.nodeIds.length - 1] === nodeId
+        );
+    }
+
+    /**
+     * Checks if the street is named.
+     * @returns {boolean}
+     */
+    get isUnnamed() {
+        return !this.name && !this.ref;
+    }
+}
+
+/**
+ * Represents an intersection: an OSM node where two or more named streets meet.
+ *
+ * Properties:
+ *   id          {string}    OSM node ID
+ *   lat         {number}    Latitude
+ *   lon         {number}    Longitude
+ *   streets     {Street[]}  All streets that pass through this intersection
+ */
+export class Intersection {
+  /**
+   * @param {string} id   OSM node ID
+   * @param {number} lat
+   * @param {number} lon
+   */
+  constructor(id, lat, lon) {
+    this.id = id;
+    this.lat = lat;
+    this.lon = lon;
+    /** @type {Street[]} */
+    this.streets = [];
+  }
+  /**
+   * Adds a street to this intersection (avoids duplicates).
+   * @param {Street} street
+   */
+  addStreet(street) {
+    if (!this.streets.find((s) => s.id === street.id)) {
+        this.streets.push(street);
+    }
+  }
+
+    /**
+   * Returns unique street names at this intersection.
+   * @returns {string[]}
+   */
+  get streetNames() {
+    const seen = new Set();
+    return this.streets
+    .map((s) => s.label)
+    .filter((name) => {
+        if (seen.has(name)) return false;
+        seen.add(name);
+        return true;
+    });
+  }
+
+  /**
+   * Returns a human-readable description of this intersection,
+   * suitable for screen reader announcement.
+   *
+   * Examples:
+   *   "Intersection of Main Street and University Avenue"
+   *   "Intersection of Main Street, University Avenue, and 13th Street"
+   * @returns {string}
+   */
+  get description() {
+    const names = this.streetNames;
+    if (names.length === 0) return "Unknown Intersection";
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} and ${names[1]}`;
+    const last = names[names.length - 1];
+    const rest = names.slice(0, -1).join(", ");
+    return `${rest}, and ${last}`;
+  }
+}
+
+/**
+ * A graph of intersections connected by streets.
+ *
+ * Nodes: Intersection instances, keyed by OSM node ID.
+ * Edges: Implicit -- derived from Street.nodeIds shared between intersections.
+ *
+ * Main responsibilities:
+ *   - Fetch OSM data via Overpass API
+ *   - Parse OSM ways and nodes into Street and Intersection objects
+ *   - Provide graph traversal: neighbors, nearest intersection, path along a street
+ */
+export class IntersectionGraph {
+  constructor() {
+    /** @type {Map<string, Intersection>} */
+    this.intersections = new Map();
+
+    /** @type {Map<string, Street>} */
+    this.streets = new Map();
+
+    /**
+     * Maps every OSM node ID to the IDs of ways that pass through it.
+     * Used during construction to identify intersection nodes.
+     * @type {Map<string, Set<string>>}
+     */
+    this._nodeToWayIds = new Map();
+
+    /**
+     * Raw node coordinate store for all OSM nodes (not just intersections).
+     * Needed to calculate distances along streets.
+     * @type {Map<string, {lat: number, lon: number}>}
+     */
+    this._nodeCoords = new Map();
+    this.unnamedRoadsDisabled = true;
+  }
+
+    /**
+   * Builds an Overpass QL query to fetch all walkable highway ways
+   * and their nodes within a radius of a center point.
+   *
+   * @param {number} lat
+   * @param {number} lon
+   * @param {number} radius  Radius in meters
+   * @returns {string}  Overpass QL query string
+   */
+  _buildQuery(lat, lon, radius) {
+  return `
+[out:json][timeout:30];
+(
+  way[highway](around:${radius},${lat},${lon});
+);
+(._;>;);
+out body;
+  `.trim();
+    }
+    
+  /**
+   * Fetches OSM data from the Overpass API.
+   *
+   * @param {string} query  Overpass QL query
+   * @returns {Promise<object>}  Parsed JSON response
+   * @throws {Error} on network or API failure
+   */
+  async _fetchOverpass(query) {
+    const response = await fetch(OVERPASS_ENDPOINT, {
+              method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `data=${encodeURIComponent(query)}`,
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Overpass API error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Parses an Overpass JSON response into the graph's internal data structures.
+   *
+   * Step 1: Index all nodes (coordinates).
+   * Step 2: Build Street objects from OSM ways (filtering unnamed/unwalkable).
+   * Step 3: Build the nodeToWayIds index.
+   * Step 4: Identify intersection nodes.
+   * Step 5: Create Intersection objects and attach their streets.
+   *
+   * @param {object} osmData  Parsed Overpass JSON
+   */
+  _parseOsmData(osmData)   {
+    this.intersections.clear();
+    this.streets.clear();
+    this._nodeToWayIds.clear();
+    this._nodeCoords.clear();
+    const elements = osmData.elements || [];
+    if (elements.length === 0) return;
     for (const el of elements) {
-        if (el.type == "node") nodes[el.id] = {lat: el.lat, lon: el.lon, ways: []};
-        else if (el.type == "way") ways.push(el);
+        if (el.type === "node") this._nodeCoords.set(String(el.id), {lat: el.lat, lon: el.lon});
     }
-    for (const way of ways) {
-        if (way.tags.highway) {
-            for (const node_id of way.nodes) {
-                if (nodes[node_id]) nodes[node_id].ways.push(way);
+    for (const el of elements) {
+        if (el.type != "way") continue;
+        if (!el.tags?.highway) continue;
+        if (EXCLUDED_HIGHWAY_TYPES.has(el.tags.highway)) continue;
+        const street = new Street(el);
+        this.streets.set(street.id, street);
+    }
+    for (const street of this.streets.values()) {
+        for (const nodeId of street.nodeIds) {
+            if (!this._nodeToWayIds.has(nodeId)) this._nodeToWayIds.set(nodeId, new Set());
+            this._nodeToWayIds.get(nodeId).add(street.id);
+        }
+    }
+    const intersectionNodes = new Set();
+    for (const [nodeId, wayIds] of this._nodeToWayIds.entries()) {
+        if (wayIds.size() < 2) continue;
+        intersectionNodes.add(nodeId);
+    }
+    for (const street of this.streets.values()) {
+        if (street.nodeIds.length === 0) continue;
+        const endpoints = [
+            street.nodeIds[0],
+            street.nodeIds[street.nodeIds.length - 1]
+        ];
+        for (const endpoint of endpoints) intersectionNodes.add(endpoint);
+    }
+    for (const nodeId of intersectionNodes) {
+        const coords = this._nodeCoords.get(nodeId);
+        if (!coords) continue;
+        const intersection = new Intersection(nodeId, coords.lat, coords.lon);
+        const wayIds = this._nodeToWayIds.get(nodeId) || new Set();
+        for (const wayId of wayIds) {
+            const street = this.streets.get(wayId);
+            if (street) intersection.addStreet(street);
+        }
+        this.intersections.set(nodeId, intersection);
+    }
+  }
+
+    /**
+   * Main entry point: load the graph centered on a lat/lon.
+   *
+   * @param {number} lat
+   * @param {number} lon
+   * @param {number} [radius=400]  Radius in meters (400m ~ a few city blocks)
+   * @returns {Promise<void>}
+   */
+  async loadFromCoords(lat, lon, radius = 5000) {
+    const query = this._buildQuery(lat, lon, radius);
+    const osmData = await this._fetchOverpass(query);
+    this._parseOsmData(osmData);
+  }
+
+  /**
+   * Returns the Intersection nearest to a given lat/lon.
+   *
+   * @param {number} lat
+   * @param {number} lon
+   * @returns {Intersection|null}
+   */
+  getNearestIntersection(lat, lon) {
+    let nearest = null;
+    let minDist = Infinity;
+    for (const intersection of this.intersections.values()) {
+        const dist = Utils.calculateDistanceBetweenCordinates(lat, lon, intersection.lat, intersection.lon);
+        if (dist < minDist) {
+            minDist = dist;
+            nearest = intersection
+        }
+    }
+    return nearest;
+  }
+
+  /**
+   * Returns all neighboring intersections reachable from a given intersection,
+   * along with the street used to reach them and the direction.
+   *
+   * Each neighbor entry:
+   *   {
+   *     intersection: Intersection,
+   *     street:       Street,
+   *     direction:    string,   // cardinal direction, e.g. "N", "SE"
+   *     distance:     number,   // meters
+   *   }
+   *
+   * @param {string} intersectionId  OSM node ID of the starting intersection
+   * @returns {Array<object>}
+   */
+  getNeighbors(intersectionId) {
+    const origin = this.intersections.get(intersectionId);
+    if (!origin) return [];
+    const neighbors = [];
+    for (const street of origin.streets) {
+        if (this.unnamedRoadsDisabled && street.isUnnamed) continue;
+        const curIndex = street.nodeIds.indexOf(origin.id);
+        if (curIndex === -1) continue;
+        const directions = [];
+        if (curIndex < street.nodeIds.length - 1) directions.push(
+            {step: 1, startIndex: curIndex}
+        );
+        if (curIndex > 0) directions.push(
+            {step: -1, startIndex: curIndex}
+        );
+        for (const {step, startIndex} of directions) {
+            let i = startIndex + step;
+            while (i >= 0 && i < street.nodeIds.length) {
+                const nodeId = street.nodeIds[i];
+                if (this.intersections.has(nodeId) && nodeId !== origin.id) {
+                    const neighbor = this.intersections.get(nodeId);
+                    if (this.unnamedRoadsDisabled) {
+    const hasNamedStreet =
+      neighbor.streets.some(s => !s.isUnnamed);
+    if (!hasNamedStreet) {
+      i += step;
+      continue;
+    }
+                    }
+                    const distance = Utils.calculateDistanceBetweenCordinates(
+                        origin.lat,
+                        origin.lon,
+                        neighbor.lat,
+                        neighbor.lon
+                    );
+                    const direction = Utils.cardinalDirection(
+                        origin.lat,
+                        origin.lon,
+                        neighbor.lat,
+                        neighbor.lon
+                    );
+                    neighbors.push({intersection: neighbor, street, angle: direction.angle, cardinal: direction.cardinal, distance});
+                    break;
+                }
+                i += step;
             }
         }
     }
-    for (const [node_id, data] of Object.entries(nodes)) {
-        if (data.ways.length >= 2) intersections[node_id] = data;
-    }
-    return intersections;
-};
+    return neighbors
+  }
 
-//Function to make intersection graph
-export const buildGraph = (data, intersections) => {
-    const graph = {};
-    const nodes = {};
-    for (const el of data) {
-        if (el.type == "node") nodes[el.id] = el;
-    }
-    for (const element of data) {
-        //1. If element is not a way, or if the way is not a highway, skip it.
-        if (element.type != "way" || !element.tags.highway) continue;
-        //2. Walk along each nodes minus the last one
-        const way = element;
-        let segment_start = null;
-        let distance_traveled = 0;
-        for (let i = 0; i < way.nodes.length - 1; ++i) {
-            //a. Get the first current node ID and next node ID along the way.
-            const current_node_id = way.nodes[i];
-            const next_node_id = way.nodes[i + 1];
-            //B. If the next node does not exist, stop. We reached the end of the segment
-            if (!next_node_id) break;
-            //C. If the current node is a intersection, and if we haven't started a segment, start a segment and set distance to 0.
-            if (intersections[current_node_id] && segment_start == null) {
-                segment_start = current_node_id;
-                distance_traveled = 0;
-            }
-            //D. Get the current node and next node and calculate the distance between the current node and next node if the nodes exist.
-            const current_node = nodes[current_node_id];
-            const nex_node = nodes[next_node_id];
-            if (current_node && nex_node) {
-                distance_traveled += Utils.calculateDistanceBetweenCordinates(current_node.lat, current_node.lon, nex_node.lat, nex_node.lon)
-            }
-            //E. if the next node ID is an intersection and we have started a segment, end the segment by forming the connection, start a new segment, and reset distance traveled.
-            if (intersections[next_node_id] && segment_start != null) {
-                //I. If the edge for the current node does not exist, create it with an empty list.
-                if (!graph[segment_start]) graph[segment_start] = [];
-                //II. If the edge for the next node does not exist, create it as well.
-                if (!graph[next_node_id]) graph[next_node_id] = [];
-                //III. Push the new connection between first and second node and second node and first node.
-                graph[segment_start].push({to: next_node_id, way: way, distance: distance_traveled});
-                graph[next_node_id].push({to: segment_start, way: way, distance: distance_traveled});
-                //IV. Reset for the next walk by reseting distance and starting segment at the next intersection node ID.
-                distance_traveled = 0;
-                segment_start = next_node_id;
-            }
-    }
-}
-    return graph;
-}
-//Function to ensure that there is enough data to work with.
-export const loadEnoughData = async (lat, lon) => {
-    let radius_km = 5;
-    let intersection_count = 0;
-    let road_data, intersections;
-    while (intersection_count < 5000 && radius_km <= 50) {
-        road_data = await loadRoadData(lat, lon, radius_km);
-        intersections = buildIntersections(road_data);
-        intersection_count = Object.keys(intersections).length;
-        if (intersection_count >= 5000) break;
-        radius_km *= 2;
-    }
-    return {intersections: intersections, data: road_data};
-};
+  /**
+   * Returns the Intersection object for a given node ID.
+   * @param {string} id
+   * @returns {Intersection|null}
+   */
+  getIntersection(id) {
+    return this.intersections.get(id) || null;
+  }
 
-//Function to retrieve a way
-export const retrieveWay = (elements, way_id) => elements.find(el => el.type == "way" && el.id == way_id);
-
-//Function to retrieve node by id.
-export const retrieveNode = (elements, node_id) => elements.find(el => el.type == "node" && el.id == node_id);
-
-//Function that retrieves the closest node to current location by sorting nodes of intersections by distance and returning the node id
-export const getClosestIntersectionNodeId = (lat, lon, intersections, graph) => {
-    const sorted_list = Object.entries(intersections).filter(([node_id, data]) => !shouldCollapseIntersection(graph, node_id)).map(([node_id, data]) => ({id: node_id, distance: Utils.calculateDistanceBetweenCordinates(lat, lon, data.lat, data.lon)})).sort((a, b) => a.distance - b.distance);
-    return sorted_list[0].id;
-}
-
-//Function to retrieve the name of a road
-export const getRoadName= (way) => {
-    if (way.tags.name && way.tags.ref) return `${way.tags.name} / ${way.tags.ref}`;
-    if (way.tags.name) return way.tags.name;
-    else if (!way.tags.name && way.tags.highway == "service") return "Service Road";
-    else if (!way.tags.name && way.tags.highway == "footway") return "Walking Path";
-    else if (!way.tags.name && way.tags.highway == "service") return "Service Road";
-    else if (!way.tags.name && way.tags.highway == "cycleway") return "Bike Path";
-    else if (!way.tags.name && way.tags.highway == "residential") return "Residential Street";
-    else if (!way.tags.name && way.tags.ref) return way.tags.ref;
-    else if (!way.tags.name && way.tags.junction == "roundabout") return "Roundabout";
-    else if (!way.tags.name && way.tags.highway == "motorway_link") {
-        let hwy_ramp = "Ramp";
-        if (way.tags["junction:ref"]) hwy_ramp = `Offramp - exit ${way.tags["junction:ref"]}`;
-        way.tags["destination:ref"] ? hwy_ramp += ` onto ${way.tags["destination:ref"]}` : "Ramp";
-        way.tags.destination ? hwy_ramp += ` - towards ${way.tags.destination}` : "";
-        return hwy_ramp;
-    }
-    else return "Road";
-}
-
-//Function to retrieve the current intersection text
-export const currentIntersectionTitle = (intersection) => {
-    const names = [];
-    for (const w of intersection) {
-        if (w.tags.name) {
-            if (!names.includes(w.tags.name)) names.push(w.tags.name);
-        }
-        else names.push(getRoadName(w));
-    }
-    let intersection_string = "";
-    if (names.length == 1) intersection_string += `${names[0]}`;
-    else if (names.length == 2) intersection_string += `${names[0]} and ${names[1]}`;
-    else {
-        const last = names.pop();
-        intersection_string += `${names.join(", ")} and ${last}`
-    }
-    return intersection_string;
-};
-
-//Function to continue on same road
-export const continueOnSameRoad = (graph, current_intersection_id, edge, incoming_bearing) => {
-    const next_intersection = edge.to;
-    const next_intersection_edges = graph[next_intersection];
-    if (!next_intersection_edges) return null;
-    let best_edge = null;
-    let best_diff = Infinity;
-    for (const e of next_intersection_edges) {
-        if (e.to == current_intersection_id) continue;
-        const to_node = retrieveNode(state.road_data, e.to);
-        const intersection_node = retrieveNode(state.road_data, next_intersection);
-        const outgoing_bearing = Utils.getBearing(intersection_node.lat, intersection_node.lon, to_node.lat, to_node.lon);
-        const diff = Math.abs(((incoming_bearing - outgoing_bearing + 540) % 360) - 180);
-        if (diff < best_diff) {
-            best_diff = diff;
-            best_edge = e;
-        }
-    }
-    return best_edge;
-};
-
-//Function to help determine if an intersection should be collapsed or not to avoid service roads and non roads
-export const shouldCollapseIntersection = (graph, node_id) => {
-    const is_low_priority = (way) => ["service", "footway", "cycleway", "path", "track", "primary_link", "secondary_link"].includes(way.tags.highway);
-    const edges = graph[node_id];
-    if (!edges) return true;
-    const real_roads = edges.filter(e => !is_low_priority(e.way)).map(e => getRoadName(e.way));
-    if (real_roads.length == 0) return true;
-    if (real_roads.length == 2 && real_roads[0] == real_roads[1]) return true;
-    const distinct_roads = [...new Set(real_roads)];
-    return distinct_roads.length == 1;
-}
-
-//Function to skip service roads, walking paths, and other trivial roads
-export const findNextRealIntersection = (data, graph, segment, intersection, bearing) => {
-    //1. Get next intersection based on the current segment, and if intersection has no next intersection or if dead end is true, then stop searching and return.
-    let current_intersection_id = intersection.id;
-    let current_intersection = intersection;
-    let current_bearing = bearing;
-    let current_segment= segment;
-    let distance = segment.distance;
-    let next_intersection_id = segment.to;
-    if (!graph[next_intersection_id]) return {segment: current_segment, intersection: current_intersection, bearing: current_bearing, distance: distance};
-    let next_intersection = retrieveNode(data, next_intersection_id);
-    let next_segment_data = getBestSegmentByAngularDifference(data, graph[next_intersection_id], next_intersection_id, current_bearing);
-    let next_segment = next_segment_data.segment;
-    let next_bearing = next_segment_data.bearing;
-    //2. if the next intersection should collapse, move to the next intersection, find the next best segment, retrieve the next upcoming intersection, and add distance based on the bearing between the current intersection and next intersection
-    while (shouldCollapseIntersection(graph, next_intersection_id)) {
-    current_intersection_id = next_intersection_id;
-    current_intersection = next_intersection;
-    current_bearing = next_bearing;
-    current_segment= next_segment;
-    distance += current_segment.distance;
-    next_intersection_id = current_segment.to;
-    if (!graph[next_intersection_id] || graph[next_intersection_id].dead_end) return {segment: current_segment, intersection: retrieveNode(data, next_intersection_id), bearing: current_bearing, distance: distance};
-    next_intersection = retrieveNode(data, next_intersection_id);
-    next_segment_data = getBestSegmentByAngularDifference(data, graph[next_intersection_id], next_intersection_id, current_bearing);
-    next_segment = next_segment_data.segment;
-    next_bearing = next_segment_data.bearing;
-    }
-            return {segment: next_segment, intersection: next_intersection, bearing: next_bearing, distance: distance};
-};
-
-//Function to determine the best edge based on a clock for turning
-export const selectEdgeWhenTurning = (data, graph, intersection_id, incoming_bearing, clock_direction) => {
-    const intersection = retrieveNode(data, intersection_id);
-    const edge = graph[intersection_id];
-    const edge_bearings = edge.map(e => {
-        const next_intersection = retrieveNode(data, e.to);
-        const e_bearing = Utils.getBearing(intersection.lat, intersection.lon, next_intersection.lat, next_intersection.lon);
-        return {edge: e, bearing: e_bearing};
-    }).filter(e => !["service", "footway", "cycleway", "path", "track"].includes(e.edge.way.tags.highway));
-    edge_bearings.sort((a, b) => a.bearing - b.bearing);
-    let smallest_diff = Infinity;
-    let current_index = null;
-    for (let i = 0; i < edge_bearings.length; i++) {
-        const diff = Math.abs(((edge_bearings[i].bearing - incoming_bearing + 540) % 360) - 180);
-        if (diff < smallest_diff) {
-            smallest_diff = diff;
-            current_index = i;
-        }
-    }
-    let new_edge;
-    if (clock_direction == "clockwise") new_edge = edge_bearings[(current_index + 1) % edge_bearings.length];
-    if (clock_direction == "counterclockwise") new_edge = edge_bearings.at(current_index - 1);
-    return {edge: new_edge.edge, bearing: new_edge.bearing};
-};
-
-export const getBestSegmentByAngularDifference = (data, edge, current_intersection_id, current_bearing) => {
-    let best_bearing = current_bearing;
-    let best_segment = null;
-    let smallest_diff = Infinity;
-    for (const e of edge) {
-        const current_intersection = retrieveNode(data, current_intersection_id);
-        const next_intersection = retrieveNode(data, e.to);
-        const new_bearing = Math.round(Utils.getBearing(current_intersection.lat, current_intersection.lon, next_intersection.lat, next_intersection.lon));
-        const diff = Math.abs(((new_bearing - current_bearing + 540) % 360) - 180);
-        if (diff < smallest_diff) {
-            smallest_diff = diff;
-            best_segment = e;
-            best_bearing = new_bearing;
-        }
-    }
-    return {segment: best_segment, bearing: best_bearing};
+  /**
+   * Returns true if the graph has been loaded and has at least one intersection.
+   * @returns {boolean}
+   */
+  get isLoaded() {
+    return this.intersections.size > 0;
+  }
 }
