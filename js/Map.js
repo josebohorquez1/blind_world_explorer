@@ -210,9 +210,12 @@ export class IntersectionGraph {
    */
   _buildQuery(lat, lon, radius) {
   return `
-[out:json][timeout:30];
+[out:json][timeout:60];
 (
-  way[highway](around:${radius},${lat},${lon});
+  way
+    ["highway"]
+    ["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
+    (around:${radius},${lat},${lon});
 );
 (._;>;);
 out body;
@@ -277,7 +280,7 @@ out body;
     }
     const intersectionNodes = new Set();
     for (const [nodeId, wayIds] of this._nodeToWayIds.entries()) {
-        if (wayIds.size() < 2) continue;
+        if (wayIds.size < 2) continue;
         intersectionNodes.add(nodeId);
     }
     for (const street of this.streets.values()) {
@@ -306,7 +309,7 @@ out body;
    *
    * @param {number} lat
    * @param {number} lon
-   * @param {number} [radius=400]  Radius in meters (400m ~ a few city blocks)
+   * @param {number} [radius=5000]  Radius in meters (5000m ~ a few city blocks)
    * @returns {Promise<void>}
    */
   async loadFromCoords(lat, lon, radius = 5000) {
@@ -417,4 +420,31 @@ out body;
   get isLoaded() {
     return this.intersections.size > 0;
   }
+
+  /**
+   * Determine the smallest angular adjustment required to align the current
+   * bearing with the closest street connected to an intersection.
+   * @param {number} currentBearing - Current heading in degrees (0–360).
+   * @param {Intersection} intersection - Intersection object containing neighbors().
+ * @returns {{
+ *   intersection: Intersection,
+ *   street: Street,
+ *   angle: number,
+ *   cardinal: string,
+ *   distance: number
+ * } | null}   */
+  closestNeighborByAngularDiff(currentBearing, intersection) {
+      let closestNeighbor = null;
+      let bestDiff = Infinity;
+      const neighbors = this.getNeighbors(intersection.id);
+      if (neighbors.length === 0) return null;
+      for (const neighbor of neighbors) {
+        const diff = Math.abs(Utils.angleDiff(currentBearing, street.angle));
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          closestNeighbor = neighbor;
+        }
+      }
+      return closestNeighbor;
+}
 }

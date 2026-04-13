@@ -1,7 +1,5 @@
 //File for all button events
 
-//Importing utility functions since the button events rely on them
-//Importing state since some buttons change the current state
 import * as Utils from "./UtilFunctions.js";
 import { state } from "./state.js";
 import * as Map from "./Map.js";
@@ -19,15 +17,13 @@ export const initButtons = () => {
             });
             let announcements = "";
             announcements += `<p>Changed mode to road mode. You will now be able to navigate by road.</p>`;
-            const road_data = Map.loadEnoughData(state.lat, state.lon);
-            state.road_data = (await road_data).data;
-            state.intersections = (await road_data).intersections;
-            state.intersection_graph = Map.buildGraph(state.road_data, state.intersections);
+            const intersectionGraph = new Map.IntersectionGraph();
+            await intersectionGraph.loadFromCoords(state.lat, state.lon);
             //1. Find and announce closest intersection
-            const closest_intersection_id = Map.getClosestIntersectionNodeId(state.lat, state.lon, state.intersections, state.intersection_graph);
-            const closest_intersection = Map.retrieveNode(state.road_data, closest_intersection_id);
-            const edge = state.intersection_graph[closest_intersection_id];
-            if (!edge) {
+            const closestIntersectionId = intersectionGraph.getNearestIntersection(state.lat, state.lon);
+            console.log(closestIntersectionId);
+            const closestIntersection = intersectionGraph.getIntersection(closestIntersectionId);
+            if (!closestIntersection) {
                 announcements += `<p>Unable to be placed on a road. Returning to free explore mode.</p>`;
                 Utils.srAnnounce(document.getElementById("announcements"), announcements);
             e.target.textContent = "Change to Road Mode";
@@ -38,27 +34,20 @@ export const initButtons = () => {
                 el.textContent = el.textContent.substring(0, colon_position);
             }); 
             }
-            announcements += `<p>Current intersection: ${Map.currentIntersectionTitle(edge.map(e => e.way))}</p>`;
-            //2. Align on a road segment using the closest angle difference from the current bearing and announce.
-            const segment_data = Map.getBestSegmentByAngularDifference(state.road_data, edge, closest_intersection_id, state.current_heading);
-            state.current_heading = Utils.updateHeading(Math.round(segment_data.bearing));
-            const bearing = segment_data.bearing;
-            const best_segment = segment_data.segment;
+            announcements += `<p>Current intersection: ${closestIntersection.description}</p>`;
+            //2. Align on a street using the closest angle difference from the current bearing and announce.
+            const closestNeighbor = intersectionGraph.closestNeighborByAngularDiff(state.current_heading, closestIntersection);
+            state.current_heading = Utils.updateHeading(Math.round(closestNeighbor.angle));
+            const closestStreet = closestNeighbor.street
             announcements += `
-            <p>Heading ${bearing} degrees ${state.directions[Math.round(bearing / 45) % 8]} on ${Map.getRoadName(best_segment.way)}</p>`;
+            <p>Heading ${closestNeighbor.cardinal} on ${closestStreet.label}</p>`;
             //Update current road
-            state.current_road = {id: closest_intersection.id, bearing: bearing, road: best_segment};
+            state.current_intersection = closestIntersection;
+            state.intersection_graph = intersectionGraph;
+            state.current_road = closestStreet;
             //3. Find next intersection based on the selected segment along with the distance and announce it.
-            const next_intersection_data = await Map.findNextRealIntersection(state.road_data, state.intersection_graph, best_segment, closest_intersection, bearing);
-            /*if (next_intersection_data.intersection.id == best_segment.to) {
-                announcements += `<p>Next intersection: Dead end.`;
-                Utils.srAnnounce(document.getElementById("announcements"), announcements);
-                return;
-            }*/
-            const next_intersection = next_intersection_data.intersection
-            const next_edge = state.intersection_graph[next_intersection.id];
-            const distance = Utils.calculateDistanceBetweenCordinates(closest_intersection.lat, closest_intersection.lon, next_intersection.lat, next_intersection.lon);
-            announcements += `<p>Next intersection: ${Map.currentIntersectionTitle(next_edge.map(e => e.way))} ${Utils.printDistance(distance)} away.</p>`;
+            const nextIntersection = closestNeighbor.intersection;
+            announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(closestNeighbor.distance)} away.</p>`;
             //Finish by announcing
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
         }

@@ -1,7 +1,8 @@
 //Utility functions that will be used across the code base
 
-//Importing current state for announcements
 import { state } from "./state.js";
+import * as Map from "./Map.js";
+
 //Function to fetch current location address
 export const updateStatus = async (lat, lon) => {
     let description;
@@ -125,7 +126,17 @@ export const cardinalDirection = (fromLat, fromLon, toLat, toLon) => {
     const dLon = toLon - fromLon;
     const angle = (Math.atan2(dLon, dLat) * 180) / Math.PI;
     const normalized = (angle + 360) % 360;
-    const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
     const index = Math.round((normalized / 45) % 8);
-    return {cardinal: dirs[index], angle: normalized};
+    return {cardinal: state.directions[index], angle: normalized};
 };
+
+/**
+ * Compute the signed smallest angular difference between two bearings.
+ * @param {number} a - Current bearing in degrees (0–360).
+ * @param {number} b - Target bearing in degrees (0–360).
+ * @returns {number} Signed angular difference in degrees within [-180, 180).
+ */
+export const angleDiff = (a, b) => {
+    return ((b - a + 540) % 360) - 180;
+};
+
