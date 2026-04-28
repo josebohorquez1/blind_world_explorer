@@ -36,7 +36,7 @@ const EXCLUDED_HIGHWAY_TYPES = new Set([
  *   highwayType {string}   OSM highway tag value (e.g. "residential")
  *   nodeIds     {string[]} Ordered list of OSM node IDs along this way
  */
-export class Street {
+class Street {
       /**
    * @param {object} osmWay  Raw OSM way element from Overpass JSON
    */
@@ -106,7 +106,7 @@ export class Street {
  *   lon         {number}    Longitude
  *   streets     {Street[]}  All streets that pass through this intersection
  */
-export class Intersection {
+class Intersection {
   /**
    * @param {string} id   OSM node ID
    * @param {number} lat
@@ -208,19 +208,18 @@ export class IntersectionGraph {
    * @param {number} radius  Radius in meters
    * @returns {string}  Overpass QL query string
    */
-  _buildQuery(lat, lon, radius) {
+_buildQuery(lat, lon, radius) {
+  const box = Utils.getBoundingBox(lat, lon, 5);
   return `
-[out:json][timeout:60];
-(
-  way
-    ["highway"]
-    ["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
-    (around:${radius},${lat},${lon});
-);
-(._;>;);
-out body;
+    [out:json][timeout:60];
+    (
+      way["highway"]["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
+      (${box.south},${box.west},${box.north},${box.east});
+    );
+    (._;>;);
+    out body;
   `.trim();
-    }
+}
     
   /**
    * Fetches OSM data from the Overpass API.
@@ -269,7 +268,7 @@ out body;
         if (el.type != "way") continue;
         if (!el.tags?.highway) continue;
         if (EXCLUDED_HIGHWAY_TYPES.has(el.tags.highway)) continue;
-        const street = new Street(el);
+        const street = new Street(el)
         this.streets.set(street.id, street);
     }
     for (const street of this.streets.values()) {
@@ -342,14 +341,6 @@ out body;
    * Returns all neighboring intersections reachable from a given intersection,
    * along with the street used to reach them and the direction.
    *
-   * Each neighbor entry:
-   *   {
-   *     intersection: Intersection,
-   *     street:       Street,
-   *     direction:    string,   // cardinal direction, e.g. "N", "SE"
-   *     distance:     number,   // meters
-   *   }
-   *
    * @param {string} intersectionId  OSM node ID of the starting intersection
    * @returns {Array<object>}
    */
@@ -394,7 +385,7 @@ out body;
                         neighbor.lat,
                         neighbor.lon
                     );
-                    neighbors.push({intersection: neighbor, street, angle: direction.angle, cardinal: direction.cardinal, distance});
+                    neighbors.push({intersection: neighbor, street, angle: Math.round(direction.angle), cardinal: direction.cardinal, distance});
                     break;
                 }
                 i += step;
@@ -439,7 +430,7 @@ out body;
       const neighbors = this.getNeighbors(intersection.id);
       if (neighbors.length === 0) return null;
       for (const neighbor of neighbors) {
-        const diff = Math.abs(Utils.angleDiff(currentBearing, street.angle));
+        const diff = Math.abs(Utils.angleDiff(currentBearing, neighbor.angle));
         if (diff < bestDiff) {
           bestDiff = diff;
           closestNeighbor = neighbor;
@@ -447,4 +438,61 @@ out body;
       }
       return closestNeighbor;
 }
+
+  /**
+   * Gets the street to the left based on the current intersection and current heading.
+   * @param {Intersection} intersectionId - The current intersection ID
+   * @param {number} currentBearing - The current facing direction in degrees
+ * @returns {{
+ *   intersection: Intersection,
+ *   street: Street,
+ *   angle: number,
+ *   cardinal: string,
+ *   distance: number
+ * } | null} The neighbor to the left
+   */
+  getLeftTurn(intersectionId, currentBearing) {
+    const neighbors = this.getNeighbors(intersectionId);
+    console.log(neighbors);
+    if (neighbors.length === 0) return null;
+    if (neighbors.length === 1) return neighbors[0];
+    let best = null;
+    let bestDiff = Infinity;
+    for (const neighbor of neighbors) {
+      const ccwDiff = (currentBearing - neighbor.angle + 360) % 360;
+      if (ccwDiff === 0) continue;
+      if (ccwDiff < bestDiff) {
+        best = neighbor;
+        bestDiff = ccwDiff;
+      }
+    }
+    return best;
+  }
+  /**
+   * Gets the street to the right based on the current intersection and current heading.
+   * @param {Intersection} intersectionId - The current intersection ID
+   * @param {number} currentBearing - The current facing direction in degrees
+ * @returns {{
+ *   intersection: Intersection,
+ *   street: Street,
+ *   angle: number,
+ *   cardinal: string,
+ *   distance: number
+ * } | null} The neighbor to the right
+   */
+  getRightTurn(intersectionId, currentBearing) {
+    const neighbors = this.getNeighbors(intersectionId);
+    if (neighbors.length === 0) return null;
+    let best = null;
+    let bestDiff = Infinity;
+    for (const neighbor of neighbors) {
+      const cwDiff = (neighbor.angle - currentBearing + 360) % 360;
+      if (cwDiff === 0) continue;
+      if (cwDiff < bestDiff) {
+        best = neighbor;
+        bestDiff = cwDiff;
+      }
+    }
+    return best;
+  }
 }
