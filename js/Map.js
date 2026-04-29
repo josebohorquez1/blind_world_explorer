@@ -211,13 +211,12 @@ export class IntersectionGraph {
 _buildQuery(lat, lon, radius) {
   const box = Utils.getBoundingBox(lat, lon, radius);
   return `
-    [out:json][timeout:60];
-    (
-      way["highway"]["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
-      (${box.south},${box.west},${box.north},${box.east});
-    );
-    (._;>;);
-    out body;
+[out:json][timeout:60];
+way["highway"]["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
+(${box.south},${box.west},${box.north},${box.east});
+out body;
+node(w);
+out body;
   `.trim();
 }
     
