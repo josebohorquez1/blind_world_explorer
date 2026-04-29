@@ -209,7 +209,7 @@ export class IntersectionGraph {
    * @returns {string}  Overpass QL query string
    */
 _buildQuery(lat, lon, radius) {
-  const box = Utils.getBoundingBox(lat, lon, 5);
+  const box = Utils.getBoundingBox(lat, lon, radius);
   return `
     [out:json][timeout:60];
     (
@@ -311,7 +311,7 @@ _buildQuery(lat, lon, radius) {
    * @param {number} [radius=5000]  Radius in meters (5000m ~ a few city blocks)
    * @returns {Promise<void>}
    */
-  async loadFromCoords(lat, lon, radius = 5000) {
+  async loadFromCoords(lat, lon, radius = 5) {
     const query = this._buildQuery(lat, lon, radius);
     const osmData = await this._fetchOverpass(query);
     this._parseOsmData(osmData);
