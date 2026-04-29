@@ -47,8 +47,7 @@ export const initButtons = () => {
             //3. Find next intersection based on the selected segment along with the distance and announce it.
             const nextIntersection = closestNeighbor.intersection;
             state.next_intersection = nextIntersection;
-            const distance = Utils.calculateDistanceBetweenCordinates(closestIntersection.lat, closestIntersection.lon, nextIntersection.lat, nextIntersection.lon);
-            announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(distance)} away.</p>`;
+            announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(closestNeighbor.distance)} away.</p>`;
             //Finish by announcing
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
         }
@@ -79,8 +78,7 @@ export const initButtons = () => {
             announcements += `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}</p>`;
             const nextIntersection = newNeighbor.intersection;
             state.next_intersection = nextIntersection;
-            const distance = Utils.calculateDistanceBetweenCordinates(state.current_intersection.lat, state.current_intersection.lon, nextIntersection.lat, nextIntersection.lon);
-            announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(distance)} away.</p>`;
+            announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`;
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
         }
     });
@@ -99,8 +97,7 @@ export const initButtons = () => {
             announcements += `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}</p>`;
             const nextIntersection = newNeighbor.intersection;
             state.next_intersection = nextIntersection;
-            const distance = Utils.calculateDistanceBetweenCordinates(state.current_intersection.lat, state.current_intersection.lon, nextIntersection.lat, nextIntersection.lon);
-            announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(distance)} away.</p>`;
+            announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`;
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
         }
     });
@@ -131,9 +128,9 @@ export const initButtons = () => {
             <p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}.</p>`;
             state.current_intersection = newCurrentIntersection;
             state.next_intersection = newNextIntersection;
+            state.current_heading = newNeighbor.angle;
             //3. Announce upcoming intersection and distance
-            const upcomingDistance = Utils.calculateDistanceBetweenCordinates(newCurrentIntersection.lat, newCurrentIntersection.lon, newNextIntersection.lat, newNextIntersection.lon);
-            announcements += `<p>Next intersection: ${newNextIntersection.description} ${Utils.printDistance(upcomingDistance)}  away.</p>`;
+            announcements += `<p>Next intersection: ${newNextIntersection.description} ${Utils.printDistance(newNeighbor.distance)}  away.</p>`;
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
         }
     });

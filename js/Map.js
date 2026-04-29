@@ -56,7 +56,7 @@ class Street {
     if (this.name && this.ref) return `${this.ref} / ${this.name}`;
     if (this.name) return this.name;
     if (this.ref) return this.ref;
-    return "Road";
+    return "Service Road";
   }
 
     /**
@@ -366,9 +366,11 @@ _buildQuery(lat, lon, radius) {
                 if (this.intersections.has(nodeId) && nodeId !== origin.id) {
                     const neighbor = this.intersections.get(nodeId);
                     if (this.unnamedRoadsDisabled) {
-    const hasNamedStreet =
-      neighbor.streets.some(s => !s.isUnnamed);
-    if (!hasNamedStreet) {
+                      const namedStreets = 
+                      neighbor.streets.filter(s => !s.isUnnamed);
+                      const hasCrossStreet = 
+                      namedStreets.some(s => s.id !== street.id)
+    if (!hasCrossStreet && i + step >= 0 && i + step < street.nodeIds.length) {
       i += step;
       continue;
     }
