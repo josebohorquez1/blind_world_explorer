@@ -369,7 +369,10 @@ _buildQuery(lat, lon, radius) {
                       const namedStreets = 
                       neighbor.streets.filter(s => !s.isUnnamed);
                       const hasCrossStreet = 
-                      namedStreets.some(s => s.id !== street.id)
+                      namedStreets.some(
+                        s => !s.isUnnamed && s.label !== street.label
+                      );
+                      console.log(hasCrossStreet);
     if (!hasCrossStreet && i + step >= 0 && i + step < street.nodeIds.length) {
       i += step;
       continue;
@@ -387,6 +390,7 @@ _buildQuery(lat, lon, radius) {
                         neighbor.lat,
                         neighbor.lon
                     );
+                    console.log(neighbor);
                     neighbors.push({intersection: neighbor, street, angle: Math.round(direction.angle), cardinal: direction.cardinal, distance});
                     break;
                 }

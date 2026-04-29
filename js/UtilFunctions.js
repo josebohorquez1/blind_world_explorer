@@ -126,8 +126,7 @@ export const cardinalDirection = (fromLat, fromLon, toLat, toLon) => {
     const dLon = toLon - fromLon;
     const angle = (Math.atan2(dLon, dLat) * 180) / Math.PI;
     const normalized = (angle + 360) % 360;
-    const index = Math.round((normalized / 45) % 8);
-    console.log(`${normalized}, ${index}, ${state.directions[index]}`);
+    const index = Math.round(normalized / 45) % 8;
     return {cardinal: state.directions[index], angle: normalized};
 };
 
