@@ -327,6 +327,9 @@ out body;
     let nearest = null;
     let minDist = Infinity;
     for (const intersection of this.intersections.values()) {
+      const namedStreets = intersection.streets
+      .filter(s => !s.isUnnamed);
+      if (namedStreets.length == 0) continue;
         const dist = Utils.calculateDistanceBetweenCordinates(lat, lon, intersection.lat, intersection.lon);
         if (dist < minDist) {
             minDist = dist;
@@ -371,7 +374,6 @@ out body;
                       namedStreets.some(
                         s => !s.isUnnamed && s.label !== street.label
                       );
-                      console.log(hasCrossStreet);
     if (!hasCrossStreet && i + step >= 0 && i + step < street.nodeIds.length) {
       i += step;
       continue;
@@ -389,7 +391,6 @@ out body;
                         neighbor.lat,
                         neighbor.lon
                     );
-                    console.log(neighbor);
                     neighbors.push({intersection: neighbor, street, angle: Math.round(direction.angle), cardinal: direction.cardinal, distance});
                     break;
                 }
@@ -458,7 +459,6 @@ out body;
    */
   getLeftTurn(intersectionId, currentBearing) {
     const neighbors = this.getNeighbors(intersectionId);
-    console.log(neighbors);
     if (neighbors.length === 0) return null;
     if (neighbors.length === 1) return neighbors[0];
     let best = null;

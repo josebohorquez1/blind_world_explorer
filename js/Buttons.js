@@ -20,7 +20,6 @@ export const initButtons = () => {
             await state.intersection_graph.loadFromCoords(state.lat, state.lon);
             //1. Find and announce closest intersection
             const closestIntersection = state.intersection_graph.getNearestIntersection(state.lat, state.lon);
-            console.log(closestIntersection);
             if (!closestIntersection) {
                 announcements += `<p>Unable to be placed on a road. Returning to free explore mode.</p>`;
                 Utils.srAnnounce(document.getElementById("announcements"), announcements);
@@ -44,6 +43,10 @@ export const initButtons = () => {
             state.current_road = closestStreet;
             state.lat = closestIntersection.lat;
             state.lon = closestIntersection.lon;
+            state.location_history.push({lat: state.lat,
+                lon: state.lon,
+                intersection: closestIntersection
+            });
             //3. Find next intersection based on the selected segment along with the distance and announce it.
             const nextIntersection = closestNeighbor.intersection;
             state.next_intersection = nextIntersection;
@@ -104,7 +107,10 @@ export const initButtons = () => {
     document.getElementById("turnAround").addEventListener("click", () => state.current_heading = Utils.updateHeading(state.current_heading + 180));
     document.querySelector("#go").addEventListener("click", async () => {
         if (!state.is_road_mode) {
-            state.location_history.push({lat: state.lat, lon: state.lon});
+            state.location_history.push({lat: state.lat,
+                    lon: state.lon,
+                    intersection: null
+                });
         const {lat: new_lat, lon: new_lon} = Utils.move(state.lat, state.lon, state.current_moving_distance, state.current_heading);
         state.lat = new_lat;
         state.lon = new_lon;
@@ -114,7 +120,6 @@ export const initButtons = () => {
         }
         else {
             let announcements = "";
-            state.location_history.push({lat: state.lat, lon: state.lon});
             //1. Find current intersection, next intersection, and then move to the new location.
             const newCurrentIntersection = state.next_intersection;
             const newNeighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading, newCurrentIntersection);
@@ -128,25 +133,68 @@ export const initButtons = () => {
             <p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}.</p>`;
             state.current_intersection = newCurrentIntersection;
             state.next_intersection = newNextIntersection;
-            state.current_heading = newNeighbor.angle;
+            state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
+            state.location_history.push({lat: state.lat,
+                lon: state.location_history,
+                intersection: newCurrentIntersection
+            });
             //3. Announce upcoming intersection and distance
             announcements += `<p>Next intersection: ${newNextIntersection.description} ${Utils.printDistance(newNeighbor.distance)}  away.</p>`;
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
         }
     });
-    document.getElementById("returnPrevious").addEventListener("click", () => {
+    document.getElementById("returnPrevious").addEventListener("click", async () => {
         if (state.location_history.length == 0) {
-            Utils.srAnnounce(document.querySelector("#announcement"), `Cannot return to previous point.`);
+            Utils.srAnnounce(document.querySelector("#announcements"), `<p>There are no previous points. Navigate to an intersection in road mode or explore freely to create previous points.</p>`);
             return;
         }
-        const last_point = state.location_history[state.location_history.length - 1];
-        const old_lat = state.lat;
-        const old_lon = state.lon;
-        state.lat = last_point.lat;
-        state.lon = last_point.lon;
-        state.location_history.pop();
-        Utils.updateStatus(state.lat, state.lon);
-        Utils.srAnnounce(document.querySelector("#announcement"), `Moved ${Utils.printDistance(Utils.calculateDistanceBetweenCordinates(old_lat, old_lon, state.lat, state.lon))} ${state.directions[Math.round(Utils.getBearing(old_lat, old_lon, state.lat, state.lon) / 45) % 8]}.`);
+        const lastPoint = state.location_history[state.location_history.length - 1];
+        const currentLat = state.lat;
+        const currentLon = state.lon;
+        const {lat: prevLat, lon: prevLon, intersection: prevIntersection} = lastPoint;
+        let announcements = "";
+        if (state.is_road_mode) {
+            if (!prevIntersection) {
+                announcements += `<p>The previous point does not contain intersection data. Placing you at the nearest intersection.</p>`;
+                const nearestIntersection = state.intersection_graph.getNearestIntersection(prevLat, prevLon);
+                announcements += `<p>Current intersection: ${nearestIntersection.description}</p>`;
+                const nearestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(Math.round(state.current_heading), nearestIntersection);
+                announcements += `<p>Heading ${nearestNeighbor.cardinal} on ${nearestNeighbor.street.label}.</p>`;
+                const nextIntersection = nearestNeighbor.intersection;
+                announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(nearestNeighbor.distance)} away.</p>`;
+                state.lat = prevLat;
+                state.lon = prevLon;
+                state.current_intersection = nearestIntersection;
+                state.next_intersection = nextIntersection;
+                state.location_history.pop();
+                Utils.srAnnounce(document.querySelector("#announcements"), announcements);
+                return;
+            }
+            announcements += `
+            <p>Returning to previously visited intersection.</p>
+            <p>Current intersection: ${prevIntersection.description}.</p>
+            `;
+            const nearestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(Math.round(state.current_heading), prevIntersection);
+            console.log(prevIntersection);
+            console.log(nearestNeighbor);
+            announcements += `<p>Heading ${nearestNeighbor.cardinal} on ${nearestNeighbor.street.label}.</p>`;
+            const nextIntersection = nearestNeighbor.intersection;
+            announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(nearestNeighbor.distance)} away.</p>`;
+            state.lat = prevLat;
+            state.lon = prevLon;
+            state.current_intersection = prevIntersection;
+            state.next_intersection = nextIntersection;
+            state.location_history.pop();
+            Utils.srAnnounce(document.querySelector("#announcements"), announcements);
+        }
+        else {
+            state.lat = prevLat;
+            state.lon = prevLon;
+            announcements += `<p>${await Utils.updateStatus(prevLat, prevLon)}.</p>`;
+            announcements += `<p>Moved ${Utils.printDistance(Utils.calculateDistanceBetweenCordinates(currentLat, currentLon, prevLat, prevLon))} ${state.directions[Math.round(Utils.getBearing(currentLat, currentLon, prevLat, prevLon) / 45) % 8]}.</p>`
+            state.location_history.pop();
+            Utils.srAnnounce(document.querySelector("#announcements"), announcements);
+        }
     });
     //Zoom Buttons
     document.getElementById("zoomIn").addEventListener("click", () => {
