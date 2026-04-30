@@ -104,6 +104,7 @@ export const initButtons = () => {
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
         }
     });
+    //To do: Update turn around button to handle intersections in road mode.
     document.getElementById("turnAround").addEventListener("click", () => state.current_heading = Utils.updateHeading(state.current_heading + 180));
     document.querySelector("#go").addEventListener("click", async () => {
         if (!state.is_road_mode) {
@@ -128,6 +129,7 @@ export const initButtons = () => {
             state.lon = newCurrentIntersection.lon;
             //2. Announce new intersection along with distance moved.
             const distance = Utils.calculateDistanceBetweenCordinates(state.current_intersection.lat, state.current_intersection.lon, newCurrentIntersection.lat, newCurrentIntersection.lon);
+            console.log(newNeighbor.street.id)
             announcements += `<p>Moved ${Utils.printDistance(distance)} ${state.directions[Math.round(state.current_heading / 45) % 8]}</p>
             <p>Current intersection: ${newCurrentIntersection.description}.</p>
             <p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}.</p>`;
@@ -175,8 +177,6 @@ export const initButtons = () => {
             <p>Current intersection: ${prevIntersection.description}.</p>
             `;
             const nearestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(Math.round(state.current_heading), prevIntersection);
-            console.log(prevIntersection);
-            console.log(nearestNeighbor);
             announcements += `<p>Heading ${nearestNeighbor.cardinal} on ${nearestNeighbor.street.label}.</p>`;
             const nextIntersection = nearestNeighbor.intersection;
             announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(nearestNeighbor.distance)} away.</p>`;

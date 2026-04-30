@@ -97,6 +97,17 @@ class Street {
     }
 }
 
+class Edge {
+  constructor(from, to, street, distance, angle, cardinal) {
+    this.from = from;
+    this.to = to;
+    this.street = street;
+    this.distance = distance;
+    this.angle = angle;
+    this.cardinal = cardinal;
+  }
+}
+
 /**
  * Represents an intersection: an OSM node where two or more named streets meet.
  *
@@ -118,15 +129,26 @@ class Intersection {
     this.lon = lon;
     /** @type {Street[]} */
     this.streets = [];
+
+    /** @type {Edge[]} */
+    this.edges = [];
   }
   /**
-   * Adds a street to this intersection (avoids duplicates).
+   * Adds a street to this intersection .
    * @param {Street} street
    */
   addStreet(street) {
     if (!this.streets.find((s) => s.id === street.id)) {
         this.streets.push(street);
     }
+  }
+
+  /**
+   * Adds a edge to this intersection.
+   * @param {Edge} edge
+   */
+  addEdge(edge) {
+    this.edges.push(edge);
   }
 
     /**
@@ -242,6 +264,59 @@ out body;
     return response.json();
   }
 
+  _buildEdges() {
+    for (const street of this.streets.values()) {
+      const nodes = street.nodeIds;
+      let lastIntersection = null;
+      for (const node of nodes) {
+        if (!this.intersections.has(node)) continue;
+        if (!lastIntersection) {
+          lastIntersection = node;
+          continue;
+        }
+        const from = this.intersections.get(lastIntersection);
+        const to = this.intersections.get(node);
+        const forwardDirection = Utils.cardinalDirection(
+          from.lat,
+          from.lon,
+          to.lat,
+          to.lon
+        );
+        const distance = Utils.calculateDistanceBetweenCordinates(
+          from.lat,
+          from.lon,
+          to.lat,
+          to.lon
+        );
+        const forwardEdge = new Edge(
+          from,
+          to,
+          street,
+          distance,
+          Math.round(forwardDirection.angle),
+          forwardDirection.cardinal
+        );
+        const reverseDirection = Utils.cardinalDirection(
+          to.lat,
+          to.lon,
+          from.lat,
+          from.lon
+        );
+        const backwardEdge = new Edge(
+          to,
+          from,
+          street,
+          distance,
+          Math.round(reverseDirection.angle),
+          reverseDirection.cardinal
+        );
+        from.addEdge(forwardEdge);
+        to.addEdge(backwardEdge);
+        lastIntersection = node;
+      }
+    }
+  }
+
   /**
    * Parses an Overpass JSON response into the graph's internal data structures.
    *
@@ -267,7 +342,7 @@ out body;
         if (el.type != "way") continue;
         if (!el.tags?.highway) continue;
         if (EXCLUDED_HIGHWAY_TYPES.has(el.tags.highway)) continue;
-        const street = new Street(el)
+        const street = new Street(el);
         this.streets.set(street.id, street);
     }
     for (const street of this.streets.values()) {
@@ -300,6 +375,7 @@ out body;
         }
         this.intersections.set(nodeId, intersection);
     }
+    this._buildEdges();
   }
 
     /**
@@ -350,55 +426,57 @@ out body;
     const origin = this.intersections.get(intersectionId);
     if (!origin) return [];
     const neighbors = [];
-    for (const street of origin.streets) {
-        if (this.unnamedRoadsDisabled && street.isUnnamed) continue;
-        const curIndex = street.nodeIds.indexOf(origin.id);
-        if (curIndex === -1) continue;
-        const directions = [];
-        if (curIndex < street.nodeIds.length - 1) directions.push(
-            {step: 1, startIndex: curIndex}
-        );
-        if (curIndex > 0) directions.push(
-            {step: -1, startIndex: curIndex}
-        );
-        for (const {step, startIndex} of directions) {
-            let i = startIndex + step;
-            while (i >= 0 && i < street.nodeIds.length) {
-                const nodeId = street.nodeIds[i];
-                if (this.intersections.has(nodeId) && nodeId !== origin.id) {
-                    const neighbor = this.intersections.get(nodeId);
-                    if (this.unnamedRoadsDisabled) {
-                      const namedStreets = 
-                      neighbor.streets.filter(s => !s.isUnnamed);
-                      const hasCrossStreet = 
-                      namedStreets.some(
-                        s => !s.isUnnamed && s.label !== street.label
-                      );
-    if (!hasCrossStreet && i + step >= 0 && i + step < street.nodeIds.length) {
-      i += step;
+    for (const edge of origin.edges) {
+      if (this.unnamedRoadsDisabled && edge.street.isUnnamed) continue;
+          if (!this.unnamedRoadsDisabled) {
+      neighbors.push({
+        intersection: edge.to,
+        street: edge.street,
+        angle: edge.angle,
+        cardinal: edge.cardinal,
+        distance: edge.distance
+      });
       continue;
     }
-                    }
-                    const distance = Utils.calculateDistanceBetweenCordinates(
-                        origin.lat,
-                        origin.lon,
-                        neighbor.lat,
-                        neighbor.lon
-                    );
-                    const direction = Utils.cardinalDirection(
-                        origin.lat,
-                        origin.lon,
-                        neighbor.lat,
-                        neighbor.lon
-                    );
-                    neighbors.push({intersection: neighbor, street, angle: Math.round(direction.angle), cardinal: direction.cardinal, distance});
-                    break;
-                }
-                i += step;
-            }
-        }
+    let currentEdge = edge;
+    let currentIntersection = edge.to;
+    let totalDistance = 0;
+    while (true) {
+      const namedStreets = currentIntersection.streets.filter(s => !s.isUnnamed);
+      const hasCrossStreets = namedStreets
+      .some(
+        s => s.label !== currentEdge.street.label
+      );
+      totalDistance += currentEdge.distance;
+            if (hasCrossStreets) {
+        neighbors.push({
+          intersection: currentIntersection,
+          street: currentEdge.street,
+          angle: currentEdge.angle,
+          cardinal: currentEdge.cardinal,
+          distance: totalDistance
+        });
+        break;
+      }
+      const nextEdge = currentIntersection.edges.find(e => 
+        e.street.label === currentEdge.street.label
+        && e.to.id !== currentEdge.from.id
+      );
+      if (!nextEdge) {
+        neighbors.push({
+          intersection: currentIntersection,
+          street: currentEdge.street,
+          angle: currentEdge.angle,
+          cardinal: currentEdge.cardinal,
+          distance: totalDistance
+        });
+        break;
+      }
+      currentEdge = nextEdge;
+      currentIntersection = nextEdge.to;
+  }
     }
-    return neighbors
+    return neighbors;
   }
 
   /**
@@ -488,6 +566,7 @@ out body;
   getRightTurn(intersectionId, currentBearing) {
     const neighbors = this.getNeighbors(intersectionId);
     if (neighbors.length === 0) return null;
+    if (neighbors.length === 1) return neighbors[0];
     let best = null;
     let bestDiff = Infinity;
     for (const neighbor of neighbors) {
