@@ -45,6 +45,7 @@ class Street {
     this.name = osmWay.tags?.name || null;
     this.ref = osmWay.tags?.ref || null;
     this.highwayType = osmWay.tags?.highway || "road";
+    this.junctionType = osmWay.tags?.junction || null;
     this.nodeIds = (osmWay.nodes || []).map(String);
   }
 
@@ -53,10 +54,12 @@ class Street {
    * @returns {string}
    */
   get label() {
-    if (this.name && this.ref) return `${this.ref} / ${this.name}`;
     if (this.name) return this.name;
     if (this.ref) return this.ref;
-    return "Service Road";
+    if (this.highwayType === "service") return "Service Road";
+    if (this.highwayType === "residential") return "Residential Street";
+    if (this.junctionType === "roundabout") return "Roundabout";
+    return "Road";
   }
 
     /**
@@ -93,7 +96,11 @@ class Street {
      * @returns {boolean}
      */
     get isUnnamed() {
-        return !this.name && !this.ref;
+        return (
+          !this.ref
+          && !this.name
+          && this.junctionType !== "roundabout"
+        );
     }
 }
 
