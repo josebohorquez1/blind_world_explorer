@@ -231,10 +231,10 @@ export const initButtons = () => {
     //Zoom Buttons
     document.getElementById("zoomIn").addEventListener("click", () => {
         state.current_moving_distance = Math.max(1, state.current_moving_distance / 2);
-        Utils.srAnnounce(document.querySelector("#announcement"), `Zoomed in to ${Utils.printDistance(state.current_moving_distance)}`);
+        Utils.srAnnounce(document.querySelector("#announcements"), `Zoomed in to ${Utils.printDistance(state.current_moving_distance)}`);
     });
     document.getElementById("zoomOut").addEventListener("click", () => {
         state.current_moving_distance = Math.min(state.current_moving_distance * 2, 1609000);
-        Utils.srAnnounce(document.querySelector("#announcement"), `Zoomed out to ${Utils.printDistance(state.current_moving_distance)}`);
+        Utils.srAnnounce(document.querySelector("#announcements"), `Zoomed out to ${Utils.printDistance(state.current_moving_distance)}`);
     });
 };
