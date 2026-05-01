@@ -35,12 +35,12 @@ export const initButtons = () => {
             //2. Align on a street using the closest angle difference from the current bearing and announce.
             const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading, closestIntersection);
             state.current_heading = Utils.updateHeading(Math.round(closestNeighbor.angle));
-            const closestStreet = closestNeighbor.street
+            const closestStreet = closestNeighbor.street;
             announcements += `
             <p>Heading ${closestNeighbor.cardinal} on ${closestStreet.label}</p>`;
             //Update current road
             state.current_intersection = closestIntersection;
-            state.current_road = closestStreet;
+            state.current_road = closestNeighbor;
             state.lat = closestIntersection.lat;
             state.lon = closestIntersection.lon;
             //3. Find next intersection based on the selected segment along with the distance and announce it.
@@ -72,7 +72,7 @@ export const initButtons = () => {
             //1. Select the edge based on the clock direction.
             const newNeighbor = state.intersection_graph.getLeftTurn(state.current_intersection.id, state.current_heading);
             state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
-            state.current_road = newNeighbor.street;
+            state.current_road = newNeighbor;
             //2. Announce turn and next intersection along with distance.
             announcements += `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}</p>`;
             const nextIntersection = newNeighbor.intersection;
@@ -91,7 +91,7 @@ export const initButtons = () => {
             //1. Select the edge based on the clock direction.
             const newNeighbor = state.intersection_graph.getRightTurn(state.current_intersection.id, state.current_heading);
             state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
-            state.current_road = newNeighbor.street;
+            state.current_road = newNeighbor;
             //2. Announce turn and next intersection along with distance.
             announcements += `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}</p>`;
             const nextIntersection = newNeighbor.intersection;
@@ -100,8 +100,45 @@ export const initButtons = () => {
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
         }
     });
-    //To do: Update turn around button to handle intersections in road mode.
-    document.getElementById("turnAround").addEventListener("click", () => state.current_heading = Utils.updateHeading(state.current_heading + 180));
+    //Update turn around button to handle intersections in road mode.
+    document.querySelector("#turnAround").addEventListener("click", (e) => {
+        if (!state.is_road_mode) {
+            const oldHeading = state.current_heading;
+            state.current_heading = Utils.updateHeading(oldHeading + 180);
+            Utils.srAnnounce(
+                document.getElementById("announcements"),
+                `<p>Heading ${state.current_heading} degrees ${state.directions[(Math.round(state.current_heading) / 45 ) % 8]}.</p>`
+            );
+        }
+        else {
+            const neighbors = state.intersection_graph.getNeighbors(state.current_intersection.id);
+            const neighborsWithSameStreet = neighbors.filter(n => n.street.label === state.current_road.street.label);
+            if (neighborsWithSameStreet.length === 1) {
+                Utils.srAnnounce(
+                    document.getElementById("announcements"),
+                    `<p>Unable to turn around: current street only runs in one direction.</p>`
+                );
+                return;
+            }
+            const newNeighbor = neighborsWithSameStreet.find(n => 
+                state.current_road.street.label === n.street.label
+                && state.current_road.angle !== n.angle
+            );
+            if (newNeighbor === -1) {
+                Utils.srAnnounce(
+                    document.getElementById("announcements"),
+                    `<p>Unable to turn around.</p>`
+                );
+                return;
+            }
+            state.current_road = newNeighbor
+            Utils.srAnnounce(
+                document.getElementById("announcements"),
+                `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}
+                <p>Next intersection: ${newNeighbor.intersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`
+            );
+        }
+    });
     document.querySelector("#go").addEventListener("click", async () => {
         if (!state.is_road_mode) {
             state.location_history.push({lat: state.lat,
