@@ -427,7 +427,9 @@ out body;
     if (!origin) return [];
     const neighbors = [];
     for (const edge of origin.edges) {
-      if (this.unnamedRoadsDisabled && edge.street.isUnnamed) continue;
+      if (this.unnamedRoadsDisabled && edge.street.isUnnamed) {
+        continue;
+      }
           if (!this.unnamedRoadsDisabled) {
       neighbors.push({
         intersection: edge.to,
@@ -440,21 +442,19 @@ out body;
     }
     let currentEdge = edge;
     let currentIntersection = edge.to;
-    let totalDistance = 0;
     while (true) {
       const namedStreets = currentIntersection.streets.filter(s => !s.isUnnamed);
-      const hasCrossStreets = namedStreets
-      .some(
+      const streetsWithSameLabels = namedStreets.reduce((count, s) => (s.label === currentEdge.street.label ? count + 1 : count), 0);
+      const hasCrossStreets = namedStreets.some(
         s => s.label !== currentEdge.street.label
       );
-      totalDistance += currentEdge.distance;
-            if (hasCrossStreets) {
+            if (hasCrossStreets || streetsWithSameLabels >= 3) {
         neighbors.push({
           intersection: currentIntersection,
           street: currentEdge.street,
           angle: currentEdge.angle,
           cardinal: currentEdge.cardinal,
-          distance: totalDistance
+          distance: Utils.calculateDistanceBetweenCordinates(origin.lat, origin.lon, currentIntersection.lat, currentIntersection.lon)
         });
         break;
       }
@@ -468,7 +468,7 @@ out body;
           street: currentEdge.street,
           angle: currentEdge.angle,
           cardinal: currentEdge.cardinal,
-          distance: totalDistance
+          distance: Utils.calculateDistanceBetweenCordinates(origin.lat, origin.lon, currentIntersection.lat, currentIntersection.lon)
         });
         break;
       }
