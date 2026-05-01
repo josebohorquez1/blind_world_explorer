@@ -46,6 +46,10 @@ class Street {
     this.ref = osmWay.tags?.ref || null;
     this.highwayType = osmWay.tags?.highway || "road";
     this.junctionType = osmWay.tags?.junction || null;
+    this.destination = osmWay.tags?.destination || null;
+    this.destinationRef = osmWay.tags?.["destination:ref"] || null;
+  this.destinationStreet = osmWay.tags?.["destination:street"] ?? null;
+  this.junctionRef = osmWay.tags?.["junction:ref"] || null;
     this.nodeIds = (osmWay.nodes || []).map(String);
   }
 
@@ -59,6 +63,27 @@ class Street {
     if (this.highwayType === "service") return "Service Road";
     if (this.highwayType === "residential") return "Residential Street";
     if (this.junctionType === "roundabout") return "Roundabout";
+    if (
+      this.highwayType === "primary_link"
+      || this.highwayType === "secondary_link"
+      || this.highwayType === "tertiary_link"
+    ) return "Merging Lane";
+    if (this.highwayType === "motorway_link") {
+      if (!this.junctionRef && !this.destinationRef && !this.destination && !this.destinationStreet) return "Ramp";
+      if (this.junctionRef) return (
+        `Exit ${this.junctionRef}`
+        + `${this.destinationRef ? ` to ${this.destinationRef}` : ``}`
+        + `${this.destination ? ` towards ${this.destination}` : ``}`
+      );
+      const toText = (this.destinationRef && this.destinationStreet) ? 
+      `${this.destinationRef} ${this.destinationStreet}`
+      : this.destinationRef || this.destinationStreet || "";
+      return (
+        `Ramp`
+        + `${toText ? ` to ${toText}` : ``}`
+        + `${this.destination ? ` towards ${this.destination}` : ``}`
+      );
+    }
     return "Road";
   }
 
@@ -100,6 +125,7 @@ class Street {
           !this.ref
           && !this.name
           && this.junctionType !== "roundabout"
+          && this.highwayType !== "motorway_link"
         );
     }
 }
