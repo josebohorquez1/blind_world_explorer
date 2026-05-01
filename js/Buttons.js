@@ -43,10 +43,6 @@ export const initButtons = () => {
             state.current_road = closestStreet;
             state.lat = closestIntersection.lat;
             state.lon = closestIntersection.lon;
-            state.location_history.push({lat: state.lat,
-                lon: state.lon,
-                intersection: closestIntersection
-            });
             //3. Find next intersection based on the selected segment along with the distance and announce it.
             const nextIntersection = closestNeighbor.intersection;
             state.next_intersection = nextIntersection;
@@ -129,17 +125,16 @@ export const initButtons = () => {
             state.lon = newCurrentIntersection.lon;
             //2. Announce new intersection along with distance moved.
             const distance = Utils.calculateDistanceBetweenCordinates(state.current_intersection.lat, state.current_intersection.lon, newCurrentIntersection.lat, newCurrentIntersection.lon);
-            console.log(newNeighbor.street.id)
             announcements += `<p>Moved ${Utils.printDistance(distance)} ${state.directions[Math.round(state.current_heading / 45) % 8]}</p>
             <p>Current intersection: ${newCurrentIntersection.description}.</p>
             <p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}.</p>`;
+            state.location_history.push({lat: state.lat,
+                lon: state.lon,
+                intersection: state.current_intersection
+            });
             state.current_intersection = newCurrentIntersection;
             state.next_intersection = newNextIntersection;
             state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
-            state.location_history.push({lat: state.lat,
-                lon: state.location_history,
-                intersection: newCurrentIntersection
-            });
             //3. Announce upcoming intersection and distance
             announcements += `<p>Next intersection: ${newNextIntersection.description} ${Utils.printDistance(newNeighbor.distance)}  away.</p>`;
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
