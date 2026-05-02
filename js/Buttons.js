@@ -8,6 +8,14 @@ import * as Map from "./Map.js";
 export const initButtons = () => {
     //Change mode button
     document.getElementById("changeModeButton").addEventListener("click", async (e) => {
+        const returnToExploreMode = async () => {
+                        document.querySelectorAll("#openMovementSettingsButton, #zoomButtons button").forEach(el => {
+                el.disabled = false;
+                const colon_position = el.textContent.indexOf(":");
+                el.textContent = el.textContent.substring(0, colon_position);
+            }); 
+            state.is_road_mode = false;
+        };
         state.is_road_mode = !state.is_road_mode;
         if (state.is_road_mode) {
             e.target.textContent = "Change to Explorer Mode";
@@ -22,14 +30,10 @@ export const initButtons = () => {
             const closestIntersection = state.intersection_graph.getNearestIntersection(state.lat, state.lon);
             if (!closestIntersection) {
                 announcements += `<p>Unable to be placed on a road. Returning to free explore mode.</p>`;
-                Utils.srAnnounce(document.getElementById("announcements"), announcements);
             e.target.textContent = "Change to Road Mode";
-            Utils.srAnnounce(document.getElementById("announcements"), `<p> ${ await Utils.updateStatus(state.lat, state.lon)}</p>`);
-                        document.querySelectorAll("#openMovementSettingsButton, #zoomButtons button").forEach(el => {
-                el.disabled = false;
-                const colon_position = el.textContent.indexOf(":");
-                el.textContent = el.textContent.substring(0, colon_position);
-            }); 
+            announcements += `<p> ${ await Utils.updateStatus(state.lat, state.lon)}</p>`;
+            Utils.srAnnounce(document.querySelector("#announcements"), announcements);
+returnToExploreMode();
             }
             announcements += `<p>Current intersection: ${closestIntersection.description}</p>`;
             //2. Align on a street using the closest angle difference from the current bearing and announce.
@@ -53,11 +57,7 @@ export const initButtons = () => {
         else {
             e.target.textContent = "Change to Road Mode";
             Utils.srAnnounce(document.getElementById("announcements"), `<p> ${await Utils.updateStatus(state.lat, state.lon)}</p>`);
-                        document.querySelectorAll("#openMovementSettingsButton, #zoomButtons button").forEach(el => {
-                el.disabled = false;
-                const colon_position = el.textContent.indexOf(":");
-                el.textContent = el.textContent.substring(0, colon_position);
-            });
+returnToExploreMode();
         }
     });
 

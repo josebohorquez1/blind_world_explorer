@@ -293,7 +293,6 @@ out body;
         `Overpass API error: ${response.status} ${response.statusText}`
       );
     }
-
     return response.json();
   }
 
@@ -417,12 +416,37 @@ out body;
    * @param {number} lat
    * @param {number} lon
    * @param {number} [radius=5000]  Radius in meters (5000m ~ a few city blocks)
-   * @returns {Promise<void>}
+   * @returns {number} 0 for success, -1 for failure
    */
   async loadFromCoords(lat, lon, radius = 5) {
-    const query = this._buildQuery(lat, lon, radius);
-    const osmData = await this._fetchOverpass(query);
-    this._parseOsmData(osmData);
+      let totalIntersections = 0;
+      const progressBar = document.createElement("progress");
+      progressBar.value = 0;
+      progressBar.max = 100;
+      const progressBarText = document.createElement("span");
+      progressBarText.textContent = "Loading intersections: 0%";
+      document.getElementById("announcements").appendChild(progressBar);
+      document.getElementById("announcements").appendChild(progressBarText);
+      let currentRadius = radius;
+      try {
+        while (totalIntersections <= 15000) {
+          const query = this._buildQuery(lat, lon, currentRadius);
+          const osmData = await this._fetchOverpass(query);
+          this._parseOsmData(osmData);
+          totalIntersections = this.intersections.size;
+          let percent = Math.floor((totalIntersections / 15000) * 100);
+          if (percent > 100) percent = 100;
+          progressBar.value = percent;
+          progressBarText.textContent = `Loading intersections: ${percent}%`;
+          currentRadius += 5;
+        }
+        console.log(this.intersections.size);
+        return 0;
+      }
+      catch (error) {
+        console.error("Error fetching Overpass:", error.message);
+        return -1;
+      }
   }
 
   /**
