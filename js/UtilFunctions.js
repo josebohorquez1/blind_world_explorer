@@ -168,9 +168,9 @@ export const getBoundingBox = (center_lat, center_lon, radius_km) => {
 export const getBearingAndDirection = (fromLat, fromLon, toLat, toLon) => {
   const toRad = deg => deg * Math.PI / 180;
   const toDeg = rad => rad * 180 / Math.PI;
-  const φ1 = toRad(lat1);
-  const φ2 = toRad(lat2);
-  const Δλ = toRad(lon2 - lon1);
+  const φ1 = toRad(fromLat);
+  const φ2 = toRad(toLat);
+  const Δλ = toRad(toLon - fromLon);
   const y = Math.sin(Δλ) * Math.cos(φ2);
   const x = Math.cos(φ1) * Math.sin(φ2) -
             Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
