@@ -499,7 +499,24 @@ out body;
     }
     let currentEdge = edge;
     let currentIntersection = edge.to;
+    const visited = new Set();
     while (true) {
+  if (visited.has(currentIntersection.id)) {
+    neighbors.push({
+      intersection: currentIntersection,
+      street: currentEdge.street,
+      angle: currentEdge.angle,
+      cardinal: currentEdge.cardinal,
+      distance: Utils.calculateDistanceBetweenCordinates(
+        origin.lat,
+        origin.lon,
+        currentIntersection.lat,
+        currentIntersection.lon
+      )
+    });
+    break;
+  }
+  visited.add(currentIntersection.id);
       const namedStreets = currentIntersection.streets.filter(s => !s.isUnnamed);
       const streetsWithSameLabels = namedStreets.reduce((count, s) => (s.label === currentEdge.street.label ? count + 1 : count), 0);
       const hasCrossStreets = namedStreets.some(
