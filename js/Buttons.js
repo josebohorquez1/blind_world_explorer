@@ -342,10 +342,10 @@ export const initButtons = () => {
       state.lon = prevLon;
 
       const distanceMoved = Utils.calculateDistanceBetweenCordinates(currentLat, currentLon, prevLat, prevLon);
-      const bearingToPrev = Utils.getBearing(currentLat, currentLon, prevLat, prevLon);
+      const bearingToPrev = Utils.getBearingAndDirection(currentLat, currentLon, prevLat, prevLon);
 
       announcements += `<p>${await Utils.updateStatus(prevLat, prevLon)}.</p>`;
-      announcements += `<p>Moved ${Utils.printDistance(distanceMoved)} ${state.directions[Math.round(bearingToPrev / 45) % 8]}.</p>`;
+      announcements += `<p>Moved ${Utils.printDistance(distanceMoved)} ${bearingToPrev.cardinal}.</p>`;
 
       state.location_history.pop();
       Utils.srAnnounce(document.querySelector("#announcements"), announcements);

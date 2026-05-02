@@ -373,7 +373,7 @@ out body;
         const from = this.intersections.get(lastIntersection);
         const to = this.intersections.get(node);
 
-        const forwardDirection = Utils.cardinalDirection(
+        const forwardDirection = Utils.getBearingAndDirection(
           from.lat, from.lon,
           to.lat, to.lon
         );
@@ -389,7 +389,7 @@ out body;
           forwardDirection.cardinal
         );
 
-        const reverseDirection = Utils.cardinalDirection(
+        const reverseDirection = Utils.getBearingAndDirection(
           to.lat, to.lon,
           from.lat, from.lon
         );
