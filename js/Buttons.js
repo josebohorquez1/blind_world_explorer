@@ -9,6 +9,7 @@ export const initButtons = () => {
     //Change mode button
     document.getElementById("changeModeButton").addEventListener("click", async (e) => {
         const returnToExploreMode = async () => {
+            e.target.textContent = "Change to Road Mode";
                         document.querySelectorAll("#openMovementSettingsButton, #zoomButtons button").forEach(el => {
                 el.disabled = false;
                 const colon_position = el.textContent.indexOf(":");
@@ -24,13 +25,18 @@ export const initButtons = () => {
                 el.textContent += `: Disabled during road mode.`;
             });
             let announcements = "";
+            const fetchResponse = await state.intersection_graph.loadFromCoords(state.lat, state.lon);
+            if (fetchResponse === -1) {
+                announcements += `<p>Unable to load intersection data. Returning to explorer mode. Click the "change to road mode" button to try again.</p>`;
+                Utils.srAnnounce(document.getElementById("announcements"), announcements);
+                returnToExploreMode();
+                return;
+            }
             announcements += `<p>Changed mode to road mode. You will now be able to navigate by road.</p>`;
-            await state.intersection_graph.loadFromCoords(state.lat, state.lon);
             //1. Find and announce closest intersection
             const closestIntersection = state.intersection_graph.getNearestIntersection(state.lat, state.lon);
             if (!closestIntersection) {
                 announcements += `<p>Unable to be placed on a road. Returning to free explore mode.</p>`;
-            e.target.textContent = "Change to Road Mode";
             announcements += `<p> ${ await Utils.updateStatus(state.lat, state.lon)}</p>`;
             Utils.srAnnounce(document.querySelector("#announcements"), announcements);
 returnToExploreMode();
@@ -55,7 +61,6 @@ returnToExploreMode();
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
         }
         else {
-            e.target.textContent = "Change to Road Mode";
             Utils.srAnnounce(document.getElementById("announcements"), `<p> ${await Utils.updateStatus(state.lat, state.lon)}</p>`);
 returnToExploreMode();
         }
