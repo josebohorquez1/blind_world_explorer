@@ -429,12 +429,12 @@ out body;
       document.getElementById("announcements").appendChild(progressBarText);
       let currentRadius = radius;
       try {
-        while (totalIntersections <= 15000) {
+        while (totalIntersections <= 30000) {
           const query = this._buildQuery(lat, lon, currentRadius);
           const osmData = await this._fetchOverpass(query);
           this._parseOsmData(osmData);
           totalIntersections = this.intersections.size;
-          let percent = Math.floor((totalIntersections / 15000) * 100);
+          let percent = Math.floor((totalIntersections / 30000) * 100);
           if (percent > 100) percent = 100;
           progressBar.value = percent;
           progressBarText.textContent = `Loading intersections: ${percent}%`;
