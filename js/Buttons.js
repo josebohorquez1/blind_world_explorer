@@ -161,15 +161,12 @@ returnToExploreMode();
             let announcements = "";
             //1. Find current intersection, next intersection, and then move to the new location.
             const newCurrentIntersection = state.next_intersection;
-            Utils.srAnnounce(document.querySelector("#announcements"), `<p>Loaded current intersection.</p>`);
             const newNeighbor = state.intersection_graph.closestNeighborByAngularDiff(Math.round(state.current_heading), newCurrentIntersection);
-            Utils.srAnnounce(document.querySelector("#announcements"), `<p>Loaded neighbor.</p>`);
             const newNextIntersection = newNeighbor.intersection;
             state.lat = newCurrentIntersection.lat;
             state.lon = newCurrentIntersection.lon;
             //2. Announce new intersection along with distance moved.
             const distance = Utils.calculateDistanceBetweenCordinates(state.current_intersection.lat, state.current_intersection.lon, newCurrentIntersection.lat, newCurrentIntersection.lon);
-            Utils.srAnnounce(document.querySelector("#announcements"), `<p>Distance found.</p>`);
             announcements += `<p>Moved ${Utils.printDistance(distance)} ${state.directions[Math.round(state.current_heading / 45) % 8]}</p>
             <p>Current intersection: ${newCurrentIntersection.description}.</p>
             <p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}.</p>`;
@@ -180,7 +177,6 @@ returnToExploreMode();
             state.current_intersection = newCurrentIntersection;
             state.next_intersection = newNextIntersection;
             state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
-            Utils.srAnnounce(document.querySelector("#announcements"), `<p>Made updates to new current intersection.</p>`);
             //3. Announce upcoming intersection and distance
             announcements += `<p>Next intersection: ${newNextIntersection.description} ${Utils.printDistance(newNeighbor.distance)}  away.</p>`;
             Utils.srAnnounce(document.getElementById("announcements"), announcements);
