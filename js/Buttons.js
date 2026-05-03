@@ -207,6 +207,8 @@ export const initButtons = () => {
       }
 
       state.current_road = newNeighbor;
+      state.next_intersection = newNeighbor.intersection;
+      state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
       Utils.srAnnounce(
         document.getElementById("announcements"),
         `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}</p>
