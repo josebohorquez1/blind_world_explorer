@@ -10,6 +10,12 @@ import { switchApplicationView } from "./loader.js"; //The application loader.
 
 //Code will fire upon page load
 document.addEventListener("DOMContentLoaded", () => {
+    //Load the start screen
+    switchApplicationView(
+        "pages/start.html",
+        document.getElementById("app-mount"),
+        () => lucide.createIcons()
+    );
     //initStartScreen();
     //initSearchEvent() //Initializes search functionality
     //initSettingsEvents() //Initializes settings events
