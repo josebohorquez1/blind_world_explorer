@@ -1,0 +1,53 @@
+<div id="searchModal"
+     class="position-fixed top-0 start-0 w-100 h-100 bg-body d-flex flex-column p-3"
+     style="z-index:1055;">
+
+  <!-- Back Button -->
+  <button id="search-back" class="btn btn-link align-self-start mb-3">
+    <i role="presentation" data-lucide="arrow-big-left"></i>
+    Back
+  </button>
+
+  <!-- Title -->
+  <h1 class="display-4 mb-2">Search</h1>
+
+  <!-- Helper Text -->
+  <p class="text-body-secondary mb-4">
+    Search for a destination and press Go.
+  </p>
+
+  <!-- Search Form -->
+  <form id="search-form" class="w-100">
+
+    <div class="mb-3">
+      <label id="search-label" for="search-input" class="form-label">
+        Search
+      </label>
+
+      <input
+        type="text"
+        id="search-input"
+        class="form-control"
+        required
+        aria-labelledby="search-label"
+        autocomplete="off"
+      >
+    </div>
+
+    <button
+      id="search-btn"
+      type="submit"
+      class="btn btn-primary w-100 mb-4">
+      <i role="presentation" data-lucide="send"></i>
+      Go
+    </button>
+
+  </form>
+
+  <!-- Search Results Container -->
+  <div
+    id="search-results"
+    class="d-grid gap-2 text-start overflow-auto flex-grow-1">
+  </div>
+
+</div>

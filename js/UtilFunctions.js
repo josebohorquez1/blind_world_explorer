@@ -20,7 +20,7 @@ import * as Map from "./Map.js";
  * @param {number} lon
  * @returns {Promise<string>}  "Current Location: <address>" or "Current Location: <lat>, <lon>"
  */
-export const updateStatus = async (lat, lon) => {
+export const reportCurrentLocation= async (lat, lon) => {
   let description;
   try {
     const res = await fetch(
@@ -193,3 +193,56 @@ export const getBearingAndDirection = (fromLat, fromLon, toLat, toLon) => {
 export const angleDiff = (a, b) => {
   return ((b - a + 540) % 360) - 180;
 };
+
+/**
+ * Determines a cardinal direction given a heading in degrees between 0 and 359.
+ * The function will return north, northeast, east, southeast, south, southwest, west, and northwest
+ * If heading is less than 0 or greater than 359, the function will return an empty string
+ * @param {number} heading - The heading in degrees
+ * @returns {string}
+ */
+export const getCardinalDirection = (heading) => {
+  if (heading < 0 || heading >= 360) return "";
+  return state.directions[
+    (Math.round(heading) / 45) %8
+  ];
+}
+
+/**
+ * Waits x miliseconds before continuing execution
+ * @param {number} ms - The number in miliseconds to wait
+ * @returns {void}
+ */
+export const sleep = (ms) => {
+  if (ms < 0) return;
+  new Promise(resolve => setTimeout(resolve, ms));
+};
+
+/**
+ * Starts the free explore functionality.
+ * @param {number} lat 
+ * @param {number} lon 
+ */
+export const startExplore = async (lat, lon) => {
+    state.lat = lat;
+    state.lon = lon;
+
+    const url = `?mode=explore&coords=${lat},${lon}`;
+
+    const currentLocationDescription = await reportCurrentLocation(lat, lon);
+
+    srAnnounce(
+        document.getElementById("status-text"),
+        `Welcome to free explorer mode. Use the turn buttons along with the go button to explore your surroundings. Use the zoom buttons to increase or decrease your moving distance.`
+    );
+
+    await sleep(100);
+
+    srAnnounce(
+        document.getElementById("announcements-mount"),
+        `<p>${currentLocationDescription}</p>
+         <p>Heading ${state.current_heading} degrees ${getCardinalDirection(state.current_heading)}</p>`
+    );
+
+    history.pushState({}, "", url);
+}

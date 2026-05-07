@@ -1,0 +1,74 @@
+<div id="coordsModal"
+     class="position-fixed top-0 start-0 w-100 h-100 bg-body d-flex flex-column p-3"
+     style="z-index:1055;">
+
+  <!-- Back Button -->
+  <button id="back" class="btn btn-link align-self-start mb-3">
+    <i role="presentation" data-lucide="arrow-big-left"></i>
+    Back
+  </button>
+
+  <!-- Main Content -->
+  <div class="container text-center my-auto" style="max-width:500px;">
+
+    <h1 class="mb-3">Enter Coordinates</h1>
+
+    <p class="text-body-secondary mb-4">
+      Enter latitude and longitude coordinates to explore a location anywhere in the world.
+      Latitude must be between -90 and 90. Longitude must be between -180 and 180.
+    </p>
+
+    <!-- Example Coordinates -->
+    <div class="mb-4">
+      <p class="fw-semibold mb-2">Example Coordinates</p>
+      <ul class="list-unstyled">
+        <li>40.7128, -74.0060 (New York)</li>
+        <li>51.5074, -0.1278 (London)</li>
+        <li>35.6895, 139.6917 (Tokyo)</li>
+      </ul>
+    </div>
+
+    <!-- Latitude -->
+    <div class="mb-3 text-start">
+      <label id="lat-label" class="form-label">Latitude</label>
+      <input
+        id="lat-input"
+        aria-labelledby="lat-label"
+        aria-describedby="lat-error"
+        type="number"
+        class="form-control"
+        placeholder="e.g. 40.7128"
+        step="any"
+        required>
+      <div id="lat-error"
+           class="text-danger small mt-1"
+           aria-live="assertive"
+           aria-atomic="true"></div>
+    </div>
+
+    <!-- Longitude -->
+    <div class="mb-4 text-start">
+      <label id="lon-label" class="form-label">Longitude</label>
+      <input
+        id="lon-input"
+        aria-labelledby="lon-label"
+        aria-describedby="lon-error"
+        type="number"
+        step="any"
+        class="form-control"
+        placeholder="e.g. -74.0060"
+        required>
+      <div id="lon-error"
+           class="text-danger small mt-1"
+           aria-live="assertive"
+           aria-atomic="true"></div>
+    </div>
+
+    <!-- Go Button -->
+    <button id="submit" class="btn btn-primary w-100">
+      <i role="presentation" data-lucide="send"></i>
+      Go
+    </button>
+
+  </div>
+</div>

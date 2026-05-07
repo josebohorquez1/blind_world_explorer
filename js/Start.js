@@ -1,76 +1,85 @@
 //File to store start screen buttons functionality
 //Import modules
 import {state} from "./state.js";
-import * as Map from "./Map.js"
 import * as Utils from "./UtilFunctions.js";
+import { switchApplicationView } from "./loader.js";
+import { coordsScreenEvents } from "./start-coords.js";
+import { initSearchEvents } from "./start-search.js";
 
 //Wrapper function to hold the start screen buttons functionality
 export const initStartScreen = () => {
-    document.getElementById("option_currentLocation").addEventListener("click", () => {
-        if (navigator.geolocation) { //Does browser support geolocation?
-            navigator.geolocation.getCurrentPosition( async (position) => {
-            const {latitude, longitude, accuracy} = position.coords;
-            state.lat = latitude;
-            state.lon = longitude;
-            document.querySelector("#startScreen").classList.remove("active");
-            document.querySelectorAll("#mainScreen, #tabBar").forEach(el => el.classList.add("active"));
-            const description = await Utils.updateStatus(state.lat, state.lon);
-            state.current_heading = Utils.updateHeading(state.current_heading);
-            Utils.srAnnounce(document.getElementById("announcements"), `
-            <p>${description}</p>
-            <p>Heading ${state.current_heading} degrees ${state.directions[Math.round(state.current_heading / 45) % 8]}`);
-        }, (err) => {
-            Utils.srAnnounce(document.getElementById("startScreenError"), `Error: Could not get current location. Choose another option.`);
-            return;
-        }, {
-            enableHighAccuracy: true,
+    lucide.createIcons();
+    
+    document.getElementById("explore-current").addEventListener("click", () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition( async (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+Utils.startExplore(lat, lon);
+            },
+            () => {
+                Utils.srAnnounce(
+                    document.getElementById("status-text"),
+                    `Error: unable to get current location. Try one of the other actions instead.`
+                );
+            },
+            {enableHighAccuracy: true}
+        );
+        }
+        else {
+            Utils.srAnnounce(
+                document.getElementById("status-text"),
+                `Browser does not support geolocation. Try one of the other actions instead.`
+            );
+        }
+    });
+
+    document.getElementById("explore-coords").addEventListener("click", () => {
+        switchApplicationView(
+            "pages/start-coords.html",
+            document.getElementById("app-mount"),
+                coordsScreenEvents
+        );
+    });
+
+    document.getElementById("explore-search").addEventListener("click", () => {
+        switchApplicationView(
+            "pages/start-search.html",
+            document.getElementById("app-mount"),
+            initSearchEvents
+        );
+    });
+
+    /** @type {Map<string, {lat: number, lon: number}} */
+    const cities = new Map();
+    cities.set(
+        "explore-nyc",
+        {lat: 40.7685, lon: -73.9822}
+    );
+    cities.set(
+        "explore-london",
+        {lat: 51.5072, lon: -0.1276}
+    );
+    cities.set(
+        "explore-cairo",
+        {lat: 30.0444, lon: 31.2357}
+    );
+    cities.set(
+        "explore-sp",
+        {lat: -23.5558, lon: -46.6396}
+    );
+    cities.set(
+        "explore-tokyo",
+        {lat: 35.6764, lon: 139.6500}
+    );
+    cities.set(
+        "explore-sydney",
+        {lat: -33.8623, lon: 151.2077}
+    );
+    for (const [cityId, coords] of cities.entries()) {
+        document.getElementById(cityId).addEventListener("click", async () => {
+const {lat, lon} = coords;
+Utils.startExplore(lat, lon);
         });
     }
-    else {
-        Utils.srAnnounce(document.getElementById("startScreenError"), `Error: Browser does not support getting current location.`);
-        return;
-    }
-    });
-    document.getElementById("option_default").addEventListener("click", async () => {
-        state.lat = 40.7128;
-        state.lon = -74.0060;
-        document.querySelector("#startScreen").classList.remove("active");
-        document.querySelectorAll("#mainScreen, #tabBar").forEach(el => el.classList.add("active"));
-            const description = await Utils.updateStatus(state.lat, state.lon);
-            state.current_heading = Utils.updateHeading(state.current_heading);
-            Utils.srAnnounce(document.getElementById("announcements"), `
-            <p>${description}</p>
-            <p>Heading ${state.current_heading} degrees ${state.directions[Math.round(state.current_heading / 45) % 8]}`);
-    });
-    document.getElementById("option_coords").addEventListener("click", async () => {
-        const input = prompt(`Enter location coordinates. Examples include 29.333,21.44 or -29.777,-82.444`);
-        if (!input || !input.trim()) {
-            Utils.srAnnounce(document.getElementById("startScreenError"), `Error: No coordinates entered.`);
-            return;
-        }
-        const parts = input.split(",").map(s => s.trim());
-        if (parts.length !== 2) {
-            Utils.srAnnounce(document.getElementById("startScreenError"), `Error: Please enter coordinates in the valid format "lat,lon".`);
-            return;
-        }
-        const lat = parseFloat(parts[0]);
-        const lon = parseFloat(parts[1]);
-        if (isNaN(lat) || isNaN(lon)) {
-            Utils.srAnnounce(document.getElementById("startScreenError"), `Error: Invalid coordinates. Please enter coordinates like "29.000,81.222".`);
-            return;
-        }
-        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-            Utils.srAnnounce(document.getElementById("startScreenError"), `Error: Coordinates out of range. Latitude must be -90 to 90, longitude -180 to 180.`);
-            return;
-        }
-        state.lat = lat;
-        state.lon = lon;
-        document.querySelector("#startScreen").classList.remove("active");
-        document.querySelectorAll("#mainScreen, #tabBar").forEach(el => el.classList.add("active"));
-            const description = await Utils.updateStatus(state.lat, state.lon);
-            state.current_heading = Utils.updateHeading(state.current_heading);
-            Utils.srAnnounce(document.getElementById("announcements"), `
-            <p>${description}</p>
-            <p>Heading ${state.current_heading} degrees ${state.directions[Math.round(state.current_heading / 45) % 8]}`);
-    });
-}
+};

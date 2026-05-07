@@ -2,7 +2,8 @@
 import { state } from "./state.js"; //Holds the variables
 import* as Utils from "./UtilFunctions.js"; //Holds the utility functions
 import * as Map from "./Map.js"; //Holds the map data functions
-//import { initStartScreen } from "./Start.js";
+import { initStartScreen } from "./Start.js";
+import { coordsScreenEvents } from "./start-coords.js";
 //import { initSearchEvent } from "./Search.js"; //Contains the search functionality
 //import { initSettingsEvents } from "./Settings.js"; //Holds the events for the different settings
 //import { initButtons } from "./Buttons.js"; //Contains the button events
@@ -14,9 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
     switchApplicationView(
         "pages/start.html",
         document.getElementById("app-mount"),
-        () => lucide.createIcons()
+        initStartScreen
     );
-    //initStartScreen();
     //initSearchEvent() //Initializes search functionality
     //initSettingsEvents() //Initializes settings events
     //initButtons(); //Initializes button events
