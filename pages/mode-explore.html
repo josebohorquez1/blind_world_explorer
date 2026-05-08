@@ -1,0 +1,148 @@
+<div id="explore-screen" class="container-fluid py-3">
+
+  <!-- Top Navigation -->
+  <nav class="d-flex justify-content-between mb-3" aria-label="Explorer navigation">
+
+    <button
+      id="nav-new-location"
+      class="btn btn-outline-primary"
+      aria-label="Explore a new location"
+      data-bs-toggle="tooltip"
+      data-bs-title="Explore new location"
+    >
+      <i role="presentation" data-lucide="map-pin"></i>
+    </button>
+
+    <button
+      id="nav-road-mode"
+      class="btn btn-outline-primary"
+      aria-label="Switch to road mode"
+      data-bs-toggle="tooltip"
+      data-bs-title="Switch to road mode"
+    >
+      <i role="presentation" data-lucide="road"></i>
+    </button>
+
+    <button
+      id="nav-settings"
+      class="btn btn-outline-primary"
+      aria-label="Open settings"
+      data-bs-toggle="tooltip"
+      data-bs-title="Settings"
+    >
+      <i role="presentation" data-lucide="settings"></i>
+    </button>
+
+  </nav>
+
+  <!-- Instructions -->
+  <section id="explore-instructions" class="mb-4 text-body-secondary">
+    <p class="mb-1">
+      Currently in free explore mode. Use the buttons below to control your movement.
+    </p>
+    <p class="mb-1">
+      Press <strong>Move forward</strong> to move in the direction you are facing.
+    </p>
+    <p class="mb-0">
+      Use the <strong>Increase distance</strong> and <strong>Decrease distance</strong>
+      buttons to move by larger or smaller increments.
+    </p>
+  </section>
+
+
+  <!-- Turn Controls -->
+  <section
+  id="turn-buttons"
+    class="d-flex flex-column align-items-center gap-3 mb-4"
+    aria-describedby="explore-instructions"
+  >
+
+    <!-- Previous -->
+    <div>
+      <button
+        id="btn-previous"
+        class="btn btn-primary"
+        aria-label="Go back to previous position"
+        data-bs-toggle="tooltip"
+        data-bs-title="Previous"
+      >
+        <i role="presentation" data-lucide="corner-up-left"></i>
+      </button>
+    </div>
+
+    <!-- Turn Left / Go / Turn Right -->
+    <div class="d-flex gap-3">
+
+      <button
+        id="btn-turn-left"
+        class="btn btn-primary"
+        aria-label="Turn left"
+        data-bs-toggle="tooltip"
+        data-bs-title="Turn left"
+      >
+        <i role="presentation" data-lucide="arrow-left"></i>
+      </button>
+
+      <button
+        id="btn-go"
+        class="btn btn-success"
+        aria-label="Move forward"
+        data-bs-toggle="tooltip"
+        data-bs-title="Go forward"
+      >
+        <i role="presentation" data-lucide="arrow-up"></i>
+      </button>
+
+      <button
+        id="btn-turn-right"
+        class="btn btn-primary"
+        aria-label="Turn right"
+        data-bs-toggle="tooltip"
+        data-bs-title="Turn right"
+      >
+        <i role="presentation" data-lucide="arrow-right"></i>
+      </button>
+
+    </div>
+
+    <!-- Turn Around -->
+    <div>
+      <button
+        id="btn-turn-around"
+        class="btn btn-primary"
+        aria-label="Turn around"
+        data-bs-toggle="tooltip"
+        data-bs-title="Turn around"
+      >
+        <i role="presentation" data-lucide="rotate-ccw"></i>
+      </button>
+    </div>
+
+  </section>
+
+  <!-- Zoom Controls -->
+  <section class="d-flex justify-content-center gap-3">
+
+    <button
+      id="zoom-out"
+      class="btn btn-outline-secondary"
+      aria-label="Increase movement distance"
+      data-bs-toggle="tooltip"
+      data-bs-title="Increase distance"
+    >
+      <i role="presentation" data-lucide="zoom-in"></i>
+    </button>
+
+    <button
+      id="zoom-in"
+      class="btn btn-outline-secondary"
+      aria-label="Decrease movement distance"
+      data-bs-toggle="tooltip"
+      data-bs-title="Decrease distance"
+    >
+      <i role="presentation" data-lucide="zoom-out"></i>
+    </button>
+
+  </section>
+
+</div>

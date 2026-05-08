@@ -11,6 +11,8 @@
 
 import { state } from "./state.js";
 import * as Map from "./Map.js";
+import { switchApplicationView } from "./loader.js";
+import { initExploreMode } from "./mode-explore.js";
 
 /**
  * Reverse-geocodes a lat/lon coordinate into a human-readable address string
@@ -61,8 +63,8 @@ export const srAnnounce = (element, message) => {
  * @returns {string}  e.g. "320 feet" or "1.2 miles"
  */
 export const printDistance = (distance_in_meters) => {
-  if (distance_in_meters < 158.4) return `${Math.floor(distance_in_meters / 0.3)} feet`;
-  return `${(distance_in_meters / 1609).toFixed(1)} miles`;
+  if (distance_in_meters < 158.4) return `${Math.floor(distance_in_meters / 0.3048)} feet`;
+  return `${(distance_in_meters / 1609.34).toFixed(1)} miles`;
 };
 
 /**
@@ -203,8 +205,9 @@ export const angleDiff = (a, b) => {
  */
 export const getCardinalDirection = (heading) => {
   if (heading < 0 || heading >= 360) return "";
-  return state.directions[
-    (Math.round(heading) / 45) %8
+  const directions = ["North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"];
+  return directions[
+    Math.round(heading / 45) %8
   ];
 }
 
@@ -214,8 +217,8 @@ export const getCardinalDirection = (heading) => {
  * @returns {void}
  */
 export const sleep = (ms) => {
-  if (ms < 0) return;
-  new Promise(resolve => setTimeout(resolve, ms));
+  if (ms < 0) return Promise.resolve();
+  return new Promise(resolve => setTimeout(resolve, ms));
 };
 
 /**
@@ -233,16 +236,21 @@ export const startExplore = async (lat, lon) => {
 
     srAnnounce(
         document.getElementById("status-text"),
-        `Welcome to free explorer mode. Use the turn buttons along with the go button to explore your surroundings. Use the zoom buttons to increase or decrease your moving distance.`
+        `${currentLocationDescription}`
     );
 
     await sleep(100);
 
     srAnnounce(
         document.getElementById("announcements-mount"),
-        `<p>${currentLocationDescription}</p>
-         <p>Heading ${state.current_heading} degrees ${getCardinalDirection(state.current_heading)}</p>`
+         `<p>Heading ${state.current_heading} degrees ${getCardinalDirection(state.current_heading)}</p>`
     );
 
     history.pushState({}, "", url);
+    switchApplicationView(
+      "pages/mode-explore.html",
+      document.getElementById("app-mount"),
+      initExploreMode
+    );
 }
+

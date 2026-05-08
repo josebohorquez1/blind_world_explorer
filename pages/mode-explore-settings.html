@@ -1,0 +1,123 @@
+<div
+  id="freeExploreSettingsModal"
+  class="position-fixed top-0 start-0 w-100 h-100 bg-body d-flex flex-column p-3"
+  role="dialog"
+  aria-labelledby="freeExploreSettingsTitle"
+  aria-modal="true"
+  style="z-index:1055;"
+>
+
+  <!-- Title -->
+  <h3 id="freeExploreSettingsTitle">Free explore settings</h3>
+
+  <p>
+    Adjust how movement and orientation behave while using free explore mode.
+    These settings control how far you move, the direction you face, and how
+    much you rotate when turning.
+  </p>
+
+  <!-- Moving Distance -->
+  <h4>Moving distance</h4>
+  <p>
+    Set how far you move each time you move forward or backward.
+    Choose the distance value and the unit used for movement.
+  </p>
+
+  <div class="mb-3">
+    <label for="setting-moving-distance" class="form-label">
+      Distance value
+    </label>
+    <input
+      id="setting-moving-distance"
+      type="number"
+      value="300"
+      class="form-control"
+      min="0"
+      step="any"
+    >
+  </div>
+
+  <div class="mb-4">
+    <label for="setting-moving-unit" class="form-label">
+      Distance unit
+    </label>
+    <select id="setting-moving-unit" class="form-select">
+      <option value="meters">Meters</option>
+      <option value="feet" selected>Feet</option>
+      <option value="kilometers">Kilometers</option>
+      <option value="miles">Miles</option>
+    </select>
+  </div>
+
+  <!-- Direction -->
+  <h4>Direction</h4>
+  <p>
+    Set the direction you are facing in degrees. For example,
+    0° represents north, 90° east, 180° south, and 270° west.
+  </p>
+
+  <div class="mb-4">
+    <label for="setting-direction" class="form-label">
+      Direction in degrees
+    </label>
+    <input
+      id="setting-direction"
+      type="number"
+      class="form-control"
+      min="0"
+      max="360"
+      value="0"
+      step="1"
+    >
+  </div>
+
+  <!-- Increment Rotation -->
+  <h4>Increment rotation</h4>
+  <p>
+    Set how many degrees you rotate each time you turn left or right.
+    Smaller values allow finer adjustments in direction.
+  </p>
+
+  <div class="mb-4">
+    <label for="setting-rotation-increment" class="form-label">
+      Rotation increment in degrees
+    </label>
+    <input
+      id="setting-rotation-increment"
+      type="number"
+      class="form-control"
+      min="1"
+      max="360"
+      value="45"
+      step="1"
+    >
+  </div>
+
+  <!-- Buttons -->
+  <div class="mt-auto d-flex justify-content-end gap-2">
+
+    <button
+      id="cancel"
+      class="btn btn-secondary"
+      aria-label="Cancel"
+      data-bs-toggle="tooltip"
+      data-bs-title="Cancel"
+      type="button"
+    >
+      <i role="presentation" data-lucide="x"></i>
+    </button>
+
+    <button
+      id="apply"
+      class="btn btn-primary"
+      aria-label="Apply"
+      data-bs-toggle="tooltip"
+      data-bs-title="Cancel"
+      type="button"
+    >
+      <i role="presentation" data-lucide="check"></i>
+    </button>
+
+  </div>
+
+</div>

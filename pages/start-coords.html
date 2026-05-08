@@ -1,5 +1,6 @@
 <div id="coordsModal"
      class="position-fixed top-0 start-0 w-100 h-100 bg-body d-flex flex-column p-3"
+     role="dialog"
      style="z-index:1055;">
 
   <!-- Back Button -->
@@ -39,6 +40,8 @@
         class="form-control"
         placeholder="e.g. 40.7128"
         step="any"
+        min="-90"
+        max="90"
         required>
       <div id="lat-error"
            class="text-danger small mt-1"
@@ -57,6 +60,8 @@
         step="any"
         class="form-control"
         placeholder="e.g. -74.0060"
+        min="-180"
+        max="180"
         required>
       <div id="lon-error"
            class="text-danger small mt-1"

@@ -12,7 +12,6 @@ export const state = {
     current_heading: 0, //Current directional heading in degrees
     current_moving_distance: 90, //in meters
     current_rotation_increment: 45, //Increment for left and right turn buttons in degrees for free explore mode.
-    directions: ["North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest"],
     location_history: [], //Stores the coordinates of each point visited
     is_road_mode: false //Used to determine road mode verses free explore mode
 };

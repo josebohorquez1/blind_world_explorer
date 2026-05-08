@@ -78,8 +78,8 @@ Utils.startExplore(lat, lon);
     );
     for (const [cityId, coords] of cities.entries()) {
         document.getElementById(cityId).addEventListener("click", async () => {
-const {lat, lon} = coords;
-Utils.startExplore(lat, lon);
+        const {lat, lon} = coords;
+        Utils.startExplore(lat, lon);
         });
     }
 };
