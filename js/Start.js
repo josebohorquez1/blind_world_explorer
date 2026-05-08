@@ -5,6 +5,7 @@ import * as Utils from "./UtilFunctions.js";
 import { switchApplicationView } from "./loader.js";
 import { coordsScreenEvents } from "./start-coords.js";
 import { initSearchEvents } from "./start-search.js";
+import { initExploreMode } from "./mode-explore.js";
 
 //Wrapper function to hold the start screen buttons functionality
 export const initStartScreen = () => {
@@ -13,9 +14,13 @@ export const initStartScreen = () => {
     document.getElementById("explore-current").addEventListener("click", () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition( async (pos) => {
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-Utils.startExplore(lat, lon);
+                state.lat = pos.coords.latitude;
+                state.lon = pos.coords.longitude;
+                switchApplicationView(
+                    "pages/mode-explore.html",
+                    document.getElementById("app-mount"),
+                    initExploreMode
+                );
             },
             () => {
                 Utils.srAnnounce(
@@ -78,8 +83,13 @@ Utils.startExplore(lat, lon);
     );
     for (const [cityId, coords] of cities.entries()) {
         document.getElementById(cityId).addEventListener("click", async () => {
-        const {lat, lon} = coords;
-        Utils.startExplore(lat, lon);
+        state.lat = coords.lat;
+        state.lon = coords.lon;
+        switchApplicationView(
+            "pages/mode-explore.html",
+            document.getElementById("app-mount"),
+            initExploreMode
+        );
         });
     }
 };

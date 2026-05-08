@@ -3,13 +3,55 @@ import { switchApplicationView } from "./loader.js";
 import { state } from "./state.js";
 import { initStartScreen } from "./Start.js";
 import { initExploreModeSettings } from "./mode-explore-settings.js";
+import { initRoadMode } from "./mode-road.js";
+
+/**
+ * Reverse-geocodes a lat/lon coordinate into a human-readable address string
+ * using the Nominatim API. Falls back to raw coordinates on failure.
+ *
+ * @param {number} lat
+ * @param {number} lon
+ * @returns {Promise<string>}  "Current Location: <address>" or "Current Location: <lat>, <lon>"
+ */
+const reportCurrentLocation= async (lat, lon) => {
+  let description;
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+    );
+    const data = await res.json();
+    description = data.display_name
+      ? `Current Location: ${data.display_name}`
+      : `Current Location: ${lat}, ${lon}`;
+  } catch {
+    description = `Current Location: ${lat}, ${lon}`;
+  }
+  return description;
+};
 
 export const initExploreMode = () => {
     lucide.createIcons();
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
     Utils.sleep(100).then(() => 
-    document.querySelectorAll("#turn-buttons button")[0].focus());
+    document.querySelector("#turn-buttons button").focus());
+    const url = `?mode=explore&coords=${state.lat},${state.lon}`;
+
+    reportCurrentLocation(state.lat, state.lon).then((currentLocationDescription) => {
+    Utils.srAnnounce(
+        document.getElementById("status-text"),
+        `${currentLocationDescription}`
+    );
+    });
+
+    Utils.sleep(100).then(() => {
+    Utils.srAnnounce(
+        document.getElementById("announcements-mount"),
+         `<p>Heading ${state.current_heading} degrees ${Utils.getCardinalDirection(state.current_heading)}</p>`
+    );
+    });
+
+    history.pushState({}, "", url);
 
     document.getElementById("nav-new-location").addEventListener("click", () => {
         const url = location.origin;
@@ -21,7 +63,13 @@ export const initExploreMode = () => {
         );
     });
 
-    //switch road mode
+    document.getElementById("nav-road-mode").addEventListener("click", () => {
+        switchApplicationView(
+            "pages/mode-road.html",
+            document.getElementById("app-mount"),
+            initRoadMode
+        );
+    });
 
     //settings button
     document.getElementById("nav-settings").addEventListener("click", () => {

@@ -483,43 +483,77 @@ out body;
   /**
    * Loads the graph by fetching OSM data centered on the given coordinates.
    *
-   * Expands the search radius in 5-meter increments until at least 30,000
+   * Expands the search radius in 5-kilometer increments until at least 30,000
    * intersections are loaded. Renders a progress bar into the #announcements element.
    *
    * @param {number} lat
    * @param {number} lon
-   * @param {number} [radius=5]  Initial search radius in meters
+   * @param {number} [radius=8]  Initial search radius in kilometers
    * @returns {Promise<0 | -1>}  0 on success, -1 on fetch/parse error
    */
-  async loadFromCoords(lat, lon, radius = 5) {
+  async loadFromCoords(lat, lon, radius = 8) {
     let totalIntersections = 0;
 
     // Inject a progress bar into the live region for screen reader feedback
-    const progressBar = document.createElement("progress");
-    progressBar.value = 0;
-    progressBar.max = 100;
-    const progressBarText = document.createElement("span");
-    progressBarText.textContent = "Loading intersections: 0%";
-    document.getElementById("announcements").appendChild(progressBar);
-    document.getElementById("announcements").appendChild(progressBarText);
 
     let currentRadius = radius;
     try {
-      while (totalIntersections <= 30000) {
+Utils.srAnnounce(
+  document.getElementById("announcements-mount"),
+  `<div class="progress" role="progressbar"
+     aria-label="Loading intersections"
+     aria-valuemin="0"
+     aria-valuemax="100"
+     aria-valuenow="0">
+
+  <div
+    id="loading-progress-bar"
+    class="progress-bar progress-bar-striped progress-bar-animated"
+    style="width: 0%">
+    0%
+  </div>
+
+</div>
+
+<p id="loading-progress-text" class="mt-2">
+  Loading intersections: 0%
+</p>`
+);
+
+      while (totalIntersections <= 30000 && currentRadius <= 38) {
         const query = this._buildQuery(lat, lon, currentRadius);
         const osmData = await this._fetchOverpass(query);
         this._parseOsmData(osmData);
         totalIntersections = this.intersections.size;
 
         const percent = Math.min(Math.floor((totalIntersections / 30000) * 100), 100);
-        progressBar.value = percent;
-        progressBarText.textContent = `Loading intersections: ${percent}%`;
+Utils.srAnnounce(
+  document.getElementById("announcements-mount"),
+  `<div class="progress" role="progressbar"
+     aria-label="Loading intersections"
+     aria-valuemin="0"
+     aria-valuemax="100"
+     aria-valuenow="${percent}">
 
+  <div
+    id="loading-progress-bar"
+    class="progress-bar progress-bar-striped progress-bar-animated"
+    style="width: ${percent}%">
+    ${percent}%
+  </div>
+
+</div>
+
+<p id="loading-progress-text" class="mt-2">
+  Loading intersections: ${percent}%
+</p>`
+);
         currentRadius += 5;
       }
       return 0;
     } catch (error) {
-      console.error("Error fetching Overpass:", error.message);
+      console.error("Graph load error:", error);
+      throw error;
       return -1;
     }
   }

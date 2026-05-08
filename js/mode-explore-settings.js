@@ -11,16 +11,16 @@ export const initExploreModeSettings = () => {
         if (el.id !== "app-view") el.inert = true;
     }
     Utils.sleep(100).then(() => 
-    document.querySelectorAll("#freeExploreSettingsModal input")[0].focus());
+    document.querySelector("#freeExploreSettingsModal input").focus());
 
     const sanitizeDegreeInputs = (input) => {
         input.value = input.value.replace(/[.-]/g, "");
         if (parseFloat(input.value) >= 360) input.value = input.value.slice(0, -1);
     };
 
-    document.getElementById("setting-direction").addEventListener("input", (e) => sanitizeDegreeInputs(e.target));
+    document.getElementById("setting-direction").addEventListener("input", (e) => sanitizeDegreeInputs(e.currentTarget));
 
-    document.getElementById("setting-rotation-increment").addEventListener("input", (e) => sanitizeDegreeInputs(e.target));
+    document.getElementById("setting-rotation-increment").addEventListener("input", (e) => sanitizeDegreeInputs(e.currentTarget));
 
     document.getElementById("cancel").addEventListener("click", () => {
         for (const el of document.body.children) el.inert = false;

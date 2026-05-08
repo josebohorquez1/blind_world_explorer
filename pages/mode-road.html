@@ -1,0 +1,192 @@
+<div id="road-screen" class="container-fluid py-3">
+
+  <!-- Top Navigation -->
+  <nav class="d-flex justify-content-between mb-4" aria-label="Road mode navigation">
+
+    <button
+      id="nav-new-location"
+      class="btn btn-outline-primary"
+      aria-label="Explore a new location"
+      data-bs-toggle="tooltip"
+      data-bs-title="Explore new location"
+    >
+      <i role="presentation" data-lucide="map-pin"></i>
+    </button>
+
+    <button
+      id="nav-explore-mode"
+      class="btn btn-outline-primary"
+      aria-label="Switch to free explore mode"
+      data-bs-toggle="tooltip"
+      data-bs-title="Switch to explore mode"
+    >
+      <i role="presentation" data-lucide="compass"></i>
+    </button>
+
+    <button
+      id="nav-refresh-road"
+      class="btn btn-outline-primary"
+      aria-label="Refresh road data"
+      data-bs-toggle="tooltip"
+      data-bs-title="Refresh road data"
+    >
+      <i role="presentation" data-lucide="refresh-cw"></i>
+    </button>
+
+    <button
+      id="nav-toggle-unnamed"
+      class="btn btn-outline-primary"
+      aria-label="Enable unnamed roads"
+      data-bs-toggle="tooltip"
+      data-bs-title="Enable unnamed roads"
+    >
+      <i role="presentation" data-lucide="git-branch"></i>
+    </button>
+
+  </nav>
+
+  <!-- Instructions -->
+  <section id="road-instructions" class="mb-4 text-body-secondary">
+    <p class="mb-1">
+      Currently in road explore mode. Use the buttons below to navigate intersections.
+    </p>
+    <p class="mb-1">
+      Press <strong>Move forward</strong> to move to the next intersection based on the currently selected street.
+    </p>
+  </section>
+
+  <!-- Movement Controls -->
+  <section id="turn-buttons" aria-describedby="road-instructions" class="d-flex flex-column align-items-center gap-3 mb-4">
+
+    <!-- Previous -->
+    <div>
+      <button
+        id="btn-previous"
+        class="btn btn-primary"
+        aria-label="Return to previous intersection"
+        data-bs-toggle="tooltip"
+        data-bs-title="Previous"
+      >
+        <i role="presentation" data-lucide="corner-up-left"></i>
+      </button>
+    </div>
+
+
+    <!-- Turn Left / Move Forward / Turn Right -->
+    <div class="d-flex gap-3">
+
+      <button
+        id="btn-turn-left"
+        class="btn btn-primary"
+        aria-label="Turn left"
+        data-bs-toggle="tooltip"
+        data-bs-title="Turn left"
+      >
+        <i role="presentation" data-lucide="arrow-left"></i>
+      </button>
+
+      <button
+        id="btn-go"
+        class="btn btn-success"
+        aria-label="Move forward to the next intersection"
+        data-bs-toggle="tooltip"
+        data-bs-title="Move forward"
+      >
+        <i role="presentation" data-lucide="arrow-up"></i>
+      </button>
+
+      <button
+        id="btn-turn-right"
+        class="btn btn-primary"
+        aria-label="Turn right"
+        data-bs-toggle="tooltip"
+        data-bs-title="Turn right"
+      >
+        <i role="presentation" data-lucide="arrow-right"></i>
+      </button>
+
+    </div>
+
+
+    <!-- Turn Around -->
+    <div>
+      <button
+        id="btn-turn-around"
+        class="btn btn-primary"
+        aria-label="Turn around"
+        data-bs-toggle="tooltip"
+        data-bs-title="Turn around"
+      >
+        <i role="presentation" data-lucide="rotate-ccw"></i>
+      </button>
+    </div>
+
+  </section>
+
+
+  <!-- More Menu Button -->
+  <div class="d-flex justify-content-center mb-3">
+
+    <button
+      id="btn-more-menu"
+      class="btn btn-outline-secondary"
+      aria-haspopup="menu"
+      aria-controls="road-more-menu"
+      aria-expanded="false"
+      aria-label="Open additional actions menu"
+      data-bs-toggle="tooltip"
+      data-bs-title="More options"
+    >
+      <i role="presentation" data-lucide="more-horizontal"></i>
+    </button>
+
+  </div>
+
+
+  <!-- Context Menu -->
+  <menu
+    id="road-more-menu"
+    class="list-group"
+    role="menu"
+    aria-label="Additional road mode actions"
+    hidden
+  >
+
+    <button role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="map-pin"></i>
+      Get current address
+    </button>
+
+    <button role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="info"></i>
+      Street details
+    </button>
+
+    <button role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="external-link"></i>
+      Open in Google Maps
+    </button>
+
+    <button role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="external-link"></i>
+      Open in Apple Maps
+    </button>
+
+    <button role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="copy"></i>
+      Copy coordinates
+    </button>
+
+    <button role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="keyboard"></i>
+      Keyboard help
+    </button>
+
+    <button role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="x"></i>
+      Close menu
+    </button>
+
+  </menu>
+
+</div>

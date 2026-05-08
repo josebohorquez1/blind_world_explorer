@@ -2,6 +2,7 @@ import { initStartScreen } from "./Start.js";
 import { switchApplicationView } from "./loader.js";
 import * as Utils from "./UtilFunctions.js";
 import { state } from "./state.js";
+import { initExploreMode } from "./mode-explore.js";
 
 export const coordsScreenEvents = () => {
     lucide.createIcons();
@@ -88,8 +89,12 @@ export const coordsScreenEvents = () => {
         document.getElementById("lon-input")
     );
     document.getElementById("submit").addEventListener("click", async () => {
-        const lat = parseFloat(document.getElementById("lat-input").value).toFixed(8);
-        const lon = parseFloat(document.getElementById("lon-input").value).toFixed(8);
-        Utils.startExplore(lat, lon);
+        state.lat = parseFloat(document.getElementById("lat-input").value).toFixed(8);
+        state.lon = parseFloat(document.getElementById("lon-input").value).toFixed(8);
+        switchApplicationView(
+            "pages/mode-explore.html",
+            document.getElementById("app-mount"),
+            initExploreMode
+        );
     });
 };

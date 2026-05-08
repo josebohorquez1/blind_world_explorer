@@ -2,6 +2,7 @@
 
 //Import state variables
 import { switchApplicationView } from "./loader.js";
+import { initExploreMode } from "./mode-explore.js";
 import { initStartScreen } from "./Start.js";
 import { state } from "./state.js";
 //Import utility functions
@@ -64,10 +65,14 @@ export const initSearchEvents = async () => {
             btn.textContent = place.display_name;
             btn.addEventListener("click", async () => {
                 Array.from(document.body.children).forEach(el => el.inert = false);
-                const lat = parseFloat(place.lat);
-                const lon = parseFloat(place.lon);
-                Utils.startExplore(lat, lon);
+                state.lat = parseFloat(place.lat);
+                state.lon = parseFloat(place.lon);
                 container.innerHTML = "";
+                switchApplicationView(
+                    "pages/mode-explore.html",
+                    document.getElementById("app-mount"),
+                    initExploreMode
+                );
             });
             container.appendChild(btn);
         }

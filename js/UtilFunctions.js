@@ -15,30 +15,6 @@ import { switchApplicationView } from "./loader.js";
 import { initExploreMode } from "./mode-explore.js";
 
 /**
- * Reverse-geocodes a lat/lon coordinate into a human-readable address string
- * using the Nominatim API. Falls back to raw coordinates on failure.
- *
- * @param {number} lat
- * @param {number} lon
- * @returns {Promise<string>}  "Current Location: <address>" or "Current Location: <lat>, <lon>"
- */
-export const reportCurrentLocation= async (lat, lon) => {
-  let description;
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
-    );
-    const data = await res.json();
-    description = data.display_name
-      ? `Current Location: ${data.display_name}`
-      : `Current Location: ${lat}, ${lon}`;
-  } catch {
-    description = `Current Location: ${lat}, ${lon}`;
-  }
-  return description;
-};
-
-/**
  * Announces a message to screen readers via an ARIA live region.
  *
  * Clears the element first, then sets new content after a short delay.
@@ -178,8 +154,7 @@ export const getBearingAndDirection = (fromLat, fromLon, toLat, toLon) => {
             Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
   const θ = toDeg(Math.atan2(y, x));
   const normalized = Math.round((θ + 360) % 360);
-  const index = Math.round(normalized / 45) % 8;
-  return { cardinal: state.directions[index], angle: normalized };
+  return { cardinal: getCardinalDirection(normalized), angle: normalized };
 };
 
 /**
@@ -220,37 +195,3 @@ export const sleep = (ms) => {
   if (ms < 0) return Promise.resolve();
   return new Promise(resolve => setTimeout(resolve, ms));
 };
-
-/**
- * Starts the free explore functionality.
- * @param {number} lat 
- * @param {number} lon 
- */
-export const startExplore = async (lat, lon) => {
-    state.lat = lat;
-    state.lon = lon;
-
-    const url = `?mode=explore&coords=${lat},${lon}`;
-
-    const currentLocationDescription = await reportCurrentLocation(lat, lon);
-
-    srAnnounce(
-        document.getElementById("status-text"),
-        `${currentLocationDescription}`
-    );
-
-    await sleep(100);
-
-    srAnnounce(
-        document.getElementById("announcements-mount"),
-         `<p>Heading ${state.current_heading} degrees ${getCardinalDirection(state.current_heading)}</p>`
-    );
-
-    history.pushState({}, "", url);
-    switchApplicationView(
-      "pages/mode-explore.html",
-      document.getElementById("app-mount"),
-      initExploreMode
-    );
-}
-
