@@ -92,18 +92,31 @@ export const initRoadMode = async () => {
     });
 
     document.getElementById("nav-toggle-unnamed").addEventListener("click", (e) => {
+      const getNeighbors = () => {
+        const neighbors = state.intersection_graph.getNeighbors(state.current_intersection.id);
+        const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading);
+        state.current_road = closestNeighbor;
+        state.next_intersection = closestNeighbor.intersection;
+        Utils.srAnnounce(
+          document.getElementById("announcements-mount"),
+          `<p>Heading ${closestNeighbor.cardinal} on ${closestNeighbor.street.label}</p>
+          <p>Next intersection: ${closestNeighbor.intersection.description} ${Utils.printDistance(closestNeighbor.distance)} away.</p>`
+        );
+      };
       state.intersection_graph.unnamedRoadsDisabled = !state.intersection_graph.unnamedRoadsDisabled;
       if (!state.intersection_graph.unnamedRoadsDisabled) {
         e.currentTarget.setAttribute("aria-label", "Disable unnamed roads");
         e.currentTarget.setAttribute("data-bs-title", "Disable unnamed roads");
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
+    getNeighbors();
       }
       else {
         e.currentTarget.setAttribute("aria-label", "Enable unnamed roads");
         e.currentTarget.setAttribute("data-bs-title", "Enable unnamed roads");
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
+    getNeighbors();
       }
     });
 
