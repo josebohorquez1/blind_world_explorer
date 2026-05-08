@@ -54,8 +54,8 @@ export const initExploreMode = () => {
     history.pushState({}, "", url);
 
     document.getElementById("nav-new-location").addEventListener("click", () => {
-        const url = location.origin;
-        history.replaceState({}, "", url) + location.pathname;
+        const url = location.origin + location.pathname;
+        history.replaceState({}, "", url);
         switchApplicationView(
             "pages/start.html",
             document.getElementById("app-mount"),
