@@ -91,6 +91,7 @@ export const coordsScreenEvents = () => {
     document.getElementById("submit").addEventListener("click", async () => {
         state.lat = parseFloat(document.getElementById("lat-input").value).toFixed(8);
         state.lon = parseFloat(document.getElementById("lon-input").value).toFixed(8);
+        for (const el of document.body.children) el.inert = false;
         switchApplicationView(
             "pages/mode-explore.html",
             document.getElementById("app-mount"),
