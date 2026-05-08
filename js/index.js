@@ -30,7 +30,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (mode === "road" && lat && lon) {
             state.lat = parseFloat(lat);
             state.lon = parseFloat(lon);
-            console.log(`${state.lat, state.lon}`);
             switchApplicationView(
                 "pages/mode-road.html",
                 document.getElementById("app-mount"),
