@@ -77,6 +77,16 @@ export const initRoadMode = async () => {
       returnToExploreMode();
     });
 
+    document.getElementById("nav-new-location").addEventListener("click", () => {
+      const url = location.origin + location.pathname;
+      history.replaceState({}, "", url);
+      switchApplicationView(
+        "pages/start.html",
+        document.getElementById("app-mount"),
+        initStartScreen
+      );
+    });
+    
     document.getElementById("nav-refresh-road").addEventListener("click", () => {
       initData();
     });
