@@ -103,7 +103,7 @@ export const initExploreMode = () => {
        const distanceMoved = Utils.calculateDistanceBetweenCordinates(currentLat, currentLon, prevLat, prevLon);
        const bearingToPrev = Utils.getBearingAndDirection(currentLat, currentLon, prevLat, prevLon);
  
-       const newCurrentLocation = `${await Utils.reportCurrentLocation(prevLat, prevLon)}.`;
+       const newCurrentLocation = `${await reportCurrentLocation(prevLat, prevLon)}.`;
        announcements += `<p>Moved ${Utils.printDistance(distanceMoved)} ${bearingToPrev.cardinal}.</p>`;
  
        state.location_history.pop();
@@ -133,7 +133,7 @@ export const initExploreMode = () => {
         state.lat = newLat;
         state.lon = newLon;
 
-        const description = await Utils.reportCurrentLocation(state.lat, state.lon);
+        const description = await reportCurrentLocation(state.lat, state.lon);
         Utils.srAnnounce(
             document.getElementById("status-text"),
             `${description}`
@@ -158,7 +158,7 @@ export const initExploreMode = () => {
     document.getElementById("btn-turn-around").addEventListener("click", (e) => {
         state.current_heading = Utils.updateHeading(state.current_heading + 180);
         Utils.srAnnounce(
-            document.getElementById("announcements"),
+            document.getElementById("announcements-mount"),
             `<p>Heading ${state.current_heading} degrees ${Utils.getCardinalDirection(state.current_heading)}.</p>`
         );
     });

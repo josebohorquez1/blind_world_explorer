@@ -93,8 +93,7 @@ export const initRoadMode = async () => {
 
     document.getElementById("nav-toggle-unnamed").addEventListener("click", (e) => {
       const getNeighbors = () => {
-        const neighbors = state.intersection_graph.getNeighbors(state.current_intersection.id);
-        const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading);
+        const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading, state.current_intersection);
         state.current_road = closestNeighbor;
         state.next_intersection = closestNeighbor.intersection;
         Utils.srAnnounce(
@@ -128,6 +127,7 @@ export const initRoadMode = async () => {
       );
       return;
     }
+    let announcements = "";
 
     const lastPoint = state.location_history[state.location_history.length - 1];
     const currentLat = state.lat;
@@ -143,7 +143,10 @@ export const initRoadMode = async () => {
         );
         const nextIntersection = nearestNeighbor.intersection;
 
-        announcements += `<p>Current intersection: ${nearestIntersection.description}</p>`;
+        Utils.srAnnounce(
+          document.getElementById("status-text"),
+          `Current intersection: ${nearestIntersection.description}`
+        );
         announcements += `<p>Heading ${nearestNeighbor.cardinal} on ${nearestNeighbor.street.label}.</p>`;
         announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(nearestNeighbor.distance)} away.</p>`;
 
@@ -163,8 +166,11 @@ export const initRoadMode = async () => {
       );
       const nextIntersection = nearestNeighbor.intersection;
 
-      announcements += `<p>Returning to previously visited intersection.</p>
-        <p>Current intersection: ${prevIntersection.description}.</p>`;
+      Utils.srAnnounce(
+        document.getElementById("status-text"),
+        `Current intersection: ${prevIntersection.description}.`
+      );
+      announcements += `<p>Returning to previously visited intersection.</p>`;
       announcements += `<p>Heading ${nearestNeighbor.cardinal} on ${nearestNeighbor.street.label}.</p>`;
       announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(nearestNeighbor.distance)} away.</p>`;
 
