@@ -77,13 +77,34 @@ export const initRoadMode = async () => {
     for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
     document.querySelector("#turn-buttons button").focus();
 
-    const updateTiles = async (lat, lon) => {
-      const newTileKeyCoords = state.intersection_graph.latLonToTileXY(lat, lon);
-      const newTileKey = `${newTileKeyCoords.x}_${newTileKeyCoords.y}`;
-      const prevTileKey = state.current_tile;
-      if (newTileKey !== prevTileKey) {
-        void state.intersection_graph.loadGraph(lat, lon);
-        state.current_tile = newTileKey;
+    const updateTiles = async () => {
+      const currentTileKey = state.current_tile;
+      const tile = state.intersection_graph.tiles.get(currentTileKey);
+      if (!tile) {
+        void state.intersection_graph.loadGraph(state.lat, state.lon);
+        return;
+      }
+      const directions = ["north", "east", "south", "west"];
+      const direction = directions[
+        Math.floor((state.current_heading + 45) / 90) % 4
+      ];
+      let distance = 0;
+      switch (direction) {
+        case "north":
+          distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, tile.bbox.north, state.lon);
+          break;
+          case "east":
+            distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, state.lat, tile.bbox.east);
+            break;
+            case "south":
+              distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, tile.bbox.south, state.lon);
+              break;
+              case "west":
+                distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, state.lat, tile.bbox.west);
+                break;
+      }
+      if (distance <= 1000 || state.intersection_graph.getNeighbors(state.next_intersection.id).length === 1) {
+        void state.intersection_graph.loadGraph(state.lat, state.lon);
       }
     };
 
@@ -104,7 +125,7 @@ export const initRoadMode = async () => {
     
     document.getElementById("nav-refresh-road").addEventListener("click", async () => {
     for (const btn of document.getElementsByTagName("button")) btn.disabled = true;
-    await initData();
+    await updateTiles();
     for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
     });
 
@@ -248,6 +269,8 @@ export const initRoadMode = async () => {
 
       state.lat = newCurrentIntersection.lat;
       state.lon = newCurrentIntersection.lon;
+      const tileKeyCoords = state.intersection_graph.latLonToTileXY(state.lat, state.lon);
+      state.current_tile = `${tileKeyCoords.x}_${tileKeyCoords.y}`;
         const url = `?mode=road&coords=${state.lat},${state.lon}`;
         history.pushState({}, "", url);
       state.current_intersection = newCurrentIntersection;
@@ -257,7 +280,7 @@ export const initRoadMode = async () => {
       // Step 3: Announce the upcoming intersection
       announcements += `<p>Next intersection: ${newNextIntersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`;
       Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
-      updateTiles(state.lat, state.lon);
+      updateTiles();
   });
 
   document.getElementById("btn-turn-right").addEventListener("click", () => {

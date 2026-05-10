@@ -18,7 +18,6 @@ import { Street } from "./map-street.js";
 import { Edge } from "./map-edge.js";
 import { Intersection } from "./map-intersection.js";
 import { Tile } from "./map-tile.js";
-import { Tile } from "./map-tile.js";
 
 const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 
@@ -94,7 +93,7 @@ export class IntersectionGraph {
  * @returns {{south:number, west:number, north:number, east:number}}
  */
 _getTileBoundingBox(x, y) {
-  const TILE_SIZE = 1000;
+  const TILE_SIZE = 5000;
   const PADDING = 200;
 
   const R = 6378137;
@@ -133,7 +132,7 @@ _getTileBoundingBox(x, y) {
  */
 latLonToTileXY(lat, lon) {
   const R = 6378137; // Web Mercator radius
-  const TILE_SIZE = 1000;
+  const TILE_SIZE = 5000;
 
   // Convert lon → meters (X)
   const xMeters = R * lon * Math.PI / 180;
@@ -205,8 +204,8 @@ out body;
     /** @type {Tile[]}  A list of new tiles */
     const tiles = [];
     const center = this.latLonToTileXY(lat, lon);
-    for (let dx = -radius; dx <= radius; dx++) {
-      for (let dy = -radius; dy <= radius; ++ dy) {
+    for (let dx = -radius; dx < radius; dx++) {
+      for (let dy = -radius; dy < radius; ++ dy) {
         const x = center.x + dx;
         const y = center.y + dy;
         const key = `${x}_${y}`;
@@ -387,8 +386,10 @@ integrateTile(tile) {
       this.integrateTile(tile);
       tile.clear();
     }
+    console.log(this.intersections);
     } catch (error) {
       console.log(`Loading error: ${error}`);
+      throw error;
       return false;
     }
     return true;
