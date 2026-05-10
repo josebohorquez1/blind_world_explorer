@@ -156,6 +156,17 @@ class Street {
       && this.highwayType !== "motorway_link"
     );
   }
+
+  /**
+   * Returns the beginning node
+   */
+  get beginningNode() {
+    return this.nodeIds[0];
+  }
+
+  get endNode() {
+    return this.nodeIds[this.nodeIds.length - 1];
+  }
 }
 
 /**
@@ -186,6 +197,9 @@ class Edge {
     this.angle = angle;
     this.cardinal = cardinal;
   }
+  get id() {
+    return `${this.from.id}_${this.to}_${this.street}`
+  }
 }
 
 /**
@@ -196,7 +210,7 @@ class Edge {
  *   lat     {number}    Latitude
  *   lon     {number}    Longitude
  *   streets {Street[]}  All streets that pass through this node
- *   edges   {Edge[]}    All directed edges departing from this node
+ *   edges   {Map<string, Edge>}    All directed edges departing from this node
  */
 class Intersection {
   /**
@@ -210,8 +224,8 @@ class Intersection {
     this.lon = lon;
     /** @type {Street[]} */
     this.streets = [];
-    /** @type {Edge[]} */
-    this.edges = [];
+    /** @type {Map<string, Edge>} */
+    this.edges = new Map();
   }
 
   /**
@@ -271,6 +285,75 @@ class Intersection {
 }
 
 /**
+ * Represents a spatial tile of OpenStreetMap data.
+ *
+ * A Tile is a cached bounding-box unit used for incremental loading
+ * of map data. It stores raw OSM nodes and ways before they are
+ * integrated into the global IntersectionGraph.
+ */
+class Tile {
+  /**
+   * @param {number} x  Tile X index (grid coordinate)
+   * @param {number} y  Tile Y index (grid coordinate)
+   * @param {{south:number, west:number, north:number, east:number}} bbox
+   */
+  constructor(x, y, bbox) {
+    this.x = x;
+    this.y = y;
+    this.bbox = bbox;
+
+    /**
+     * Raw OSM node data within this tile.
+     * @type {Map<string, {lat:number, lon:number}>}
+     */
+    this.nodes = new Map();
+
+    /**
+     * Raw OSM way data within this tile.
+     * @type {Map<string, object>}
+     */
+    this.ways = new Map();
+  }
+
+  /**
+   * Adds a node to the tile.
+   *
+   * @param {string} id
+   * @param {{lat:number, lon:number}} node
+   */
+  addNode(id, node) {
+    this.nodes.set(String(id), node);
+  }
+
+  /**
+   * Adds a way to the tile.
+   *
+   * @param {string} id
+   * @param {object} way
+   */
+  addWay(id, way) {
+    this.ways.set(String(id), way);
+  }
+
+  /**
+   * Returns a simple tile key used for caching.
+   *
+   * @returns {string}
+   */
+  get key() {
+    return `${this.x}_${this.y}`;
+  }
+
+  /**
+   * Clears stored data to free memory.
+   */
+  clear() {
+    this.nodes.clear();
+    this.ways.clear();
+  }
+}
+
+/**
  * A graph of intersections connected by streets, built from OpenStreetMap data.
  *
  * Nodes: Intersection instances, keyed by OSM node ID.
@@ -294,41 +377,16 @@ export class IntersectionGraph {
      * Used during construction to detect intersection nodes (shared by 2+ ways).
      * @type {Map<string, Set<string>>}
      */
-    this._nodeToWayIds = new Map();
+    this._nodeToWays = new Map();
 
-    /**
-     * Coordinate store for all OSM nodes (not just intersections).
-     * Required to compute distances along street segments.
-     * @type {Map<string, { lat: number, lon: number }>}
-     */
-    this._nodeCoords = new Map();
+    /** @type{Map<string, Tile} The map containing the tiles. The key is determined by x-coordinate_y-coordinate */
+    this.tiles = new Map();
 
     /**
      * When true, unnamed roads are skipped during neighbor traversal,
      * and getNeighbors walks through unnamed nodes until a named cross-street is found.
      */
     this.unnamedRoadsDisabled = true;
-  }
-
-  /**
-   * Builds an Overpass QL query for all drivable highway ways and their nodes
-   * within a bounding box around the given coordinates.
-   *
-   * @param {number} lat
-   * @param {number} lon
-   * @param {number} radius  Radius in meters
-   * @returns {string}  Overpass QL query string
-   */
-  _buildQuery(lat, lon, radius) {
-    const box = Utils.getBoundingBox(lat, lon, radius);
-    return `
-[out:json][timeout:60];
-way["highway"]["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
-(${box.south},${box.west},${box.north},${box.east});
-out body;
-node(w);
-out body;
-    `.trim();
   }
 
   /**
@@ -350,6 +408,133 @@ out body;
       );
     }
     return response.json();
+  }
+
+/**
+ * Returns a padded geographic bounding box for a tile.
+ *
+ * Tile is 1km × 1km in Web Mercator space, with 200m padding
+ * added on all sides to prevent edge-cutting roads/intersections.
+ *
+ * @param {number} x  Tile X index
+ * @param {number} y  Tile Y index
+ * @returns {{south:number, west:number, north:number, east:number}}
+ */
+_getTileBoundingBox(x, y) {
+  const TILE_SIZE = 1000;
+  const PADDING = 200;
+
+  const R = 6378137;
+
+  // Convert tile bounds to meters
+  const minX = x * TILE_SIZE;
+  const maxX = (x + 1) * TILE_SIZE;
+
+  const minY = y * TILE_SIZE;
+  const maxY = (y + 1) * TILE_SIZE;
+
+  // Apply padding in meters
+  const paddedMinX = minX - PADDING;
+  const paddedMaxX = maxX + PADDING;
+  const paddedMinY = minY - PADDING;
+  const paddedMaxY = maxY + PADDING;
+
+  // Convert meters → lon/lat
+  const west = (paddedMinX / R) * (180 / Math.PI);
+  const east = (paddedMaxX / R) * (180 / Math.PI);
+
+  const south = (2 * Math.atan(Math.exp(paddedMinY / R)) - Math.PI / 2) * (180 / Math.PI);
+  const north = (2 * Math.atan(Math.exp(paddedMaxY / R)) - Math.PI / 2) * (180 / Math.PI);
+
+  return { south, west, north, east };
+}
+
+/**
+ * Converts latitude/longitude into 1km Web Mercator tile coordinates.
+ *
+ * Tiles are defined in a 1000m × 1000m grid using Web Mercator meters.
+ *
+ * @param {number} lat
+ * @param {number} lon
+ * @returns {{x: number, y: number}}
+ */
+_latLonToTileXY(lat, lon) {
+  const R = 6378137; // Web Mercator radius
+  const TILE_SIZE = 1000;
+
+  // Convert lon → meters (X)
+  const xMeters = R * lon * Math.PI / 180;
+
+  // Convert lat → meters (Y)
+  const yMeters =
+    R * Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI / 180) / 2));
+
+  // Convert meters → tile indices
+  const x = Math.floor(xMeters / TILE_SIZE);
+  const y = Math.floor(yMeters / TILE_SIZE);
+
+  return { x, y };
+}
+
+  /**
+   * Fetches nodes and ways for a tile given x and y coordinates
+   * A new tile is created, and the nodes and ways are added to the tile.
+   * The tile is then stored into the tile  map.
+   * Returns true on success or false on failure.
+   * @param {number} x - The x-coordinate of the tile
+   * @param {number} y - The y-coordinate of the tile
+   * @returns {boolean}
+   */
+  async loadTile(x, y) {
+    const box = this._getTileBoundingBox(x, y);
+const query = `
+[out:json][timeout:60];
+way["highway"]["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
+(${box.south},${box.west},${box.north},${box.east});
+out body;
+node(w);
+out body;
+    `.trim();
+    const data = await this._fetchOverpass(query);
+    if (!data.elements) return false;
+    const tile = new Tile(x, y, box);
+    for (const el of data.elements) {
+      if (el.type === "node") {
+        tile.addNode(
+        el.id,
+        {lat: el.lat, lon: el.lon}
+      );
+      continue;
+      }
+      if (el.type === "way") tile.addWay(el.id, el);
+    }
+    this.tiles.set(tile.key, tile);
+    return true;
+  }
+
+  /**
+   * Checks that all tiles are created based on the given coordinates and the given radius in grid units 
+   * If radius = 1, function ensures 3x3 tiles are surrounding the coordinates 
+   * If radius = 2, function ensures 5x5 tiles are surrounding the coordinates 
+   * @param {number} lat - The center lattitude 
+   * @param {number} lon - The center longitude 
+   * @param {number} radius - Used to calculate the tiles grid 
+   */
+  async ensureTilesAround(lat, lon, radius=1) {
+    const center = this._latLonToTileXY(lat, lon);
+    for (let dx = -radius; dx < radius; dx++) {
+      for (let dy = -radius; dy < radius; ++ dy) {
+        const x = center.x + dx;
+        const y = center.y + dy;
+        const key = `${x}_${y}`;
+        try {
+          if (this.tiles.has(key)) await this.loadTile(x, y);
+        }
+        catch (error) {
+          throw error;
+        }
+      }
+    }
   }
 
   /**
@@ -406,6 +591,135 @@ out body;
       }
     }
   }
+
+/**
+ * Integrates a tile into the global street graph.
+ * Creates streets, detects intersections, and builds edges.
+ * @param {Tile} tile
+ */
+integrateTile(tile) {
+
+  /** Streets created from this tile */
+  const streetList = [];
+
+  // ---- Create Street objects ----
+  for (const way of tile.ways) {
+    const street = new Street(way);
+    this.streets.set(way.id, street);
+    streetList.push(street);
+  }
+
+  // ---- Build node → ways map ----
+  for (const street of streetList) {
+    for (const nodeId of street.nodeIds) {
+      if (!this._nodeToWays.has(nodeId)) {
+        this._nodeToWays.set(nodeId, new Set());
+      }
+
+      this._nodeToWays.get(nodeId).add(street.id);
+    }
+  }
+
+  // ---- Detect intersection nodes ----
+  const intersectionNodes = new Set();
+
+  for (const [nodeId, ways] of this._nodeToWays.entries()) {
+    if (ways.size >= 2) intersectionNodes.add(nodeId);
+  }
+
+  // also treat endpoints as intersections
+  for (const street of streetList) {
+    if (street.nodeIds.length === 0) continue;
+
+    intersectionNodes.add(street.beginningNode);
+    intersectionNodes.add(street.endNode);
+  }
+
+  // ---- Build Intersection objects ----
+  for (const nodeId of intersectionNodes) {
+
+    const nodeData = tile.nodes.get(nodeId);
+    if (!nodeData) continue;
+
+    const { lat, lon } = nodeData;
+
+    if (!this.intersections.has(nodeId)) {
+      this.intersections.set(nodeId, new Intersection(nodeId, lat, lon));
+    }
+
+    const intersection = this.intersections.get(nodeId);
+    const ways = this._nodeToWays.get(nodeId);
+    if (!ways) continue;
+
+    for (const wayId of ways) {
+      const street = this.streets.get(wayId);
+      if (street) intersection.addStreet(street);
+    }
+  }
+
+  // ---- Build edges between intersections ----
+  for (const street of streetList) {
+
+    let prevIntersection = null;
+
+    for (const nodeId of street.nodeIds) {
+
+      if (!this.intersections.has(nodeId)) continue;
+
+      if (!prevIntersection) {
+        prevIntersection = nodeId;
+        continue;
+      }
+
+      const from = this.intersections.get(prevIntersection);
+      const to = this.intersections.get(nodeId);
+
+      const distance = Utils.calculateDistanceBetweenCordinates(
+        from.lat,
+        from.lon,
+        to.lat,
+        to.lon
+      );
+
+      const fromTo = Utils.getBearingAndDirection(
+        from.lat,
+        from.lon,
+        to.lat,
+        to.lon
+      );
+
+      const toFrom = Utils.getBearingAndDirection(
+        to.lat,
+        to.lon,
+        from.lat,
+        from.lon
+      );
+
+      const edgeForward = new Edge(
+        from,
+        to,
+        street,
+        distance,
+        fromTo.angle,
+        fromTo.cardinal
+      );
+
+      const edgeBackward = new Edge(
+        to,
+        from,
+        street,
+        distance,
+        toFrom.angle,
+        toFrom.cardinal
+      );
+
+      if (!from.edges.has(edgeForward.id)) from.addEdge(edgeForward);
+      if (!to.edges.has(edgeBackward.id)) to.addEdge(edgeBackward);
+
+      prevIntersection = nodeId;
+    }
+  }
+}
 
   /**
    * Parses an Overpass JSON response into the graph's internal data structures.
@@ -480,82 +794,7 @@ out body;
     this._buildEdges();
   }
 
-  /**
-   * Loads the graph by fetching OSM data centered on the given coordinates.
-   *
-   * Expands the search radius in 5-kilometer increments until at least 30,000
-   * intersections are loaded. Renders a progress bar into the #announcements element.
-   *
-   * @param {number} lat
-   * @param {number} lon
-   * @param {number} [radius=8]  Initial search radius in kilometers
-   * @returns {Promise<0 | -1>}  0 on success, -1 on fetch/parse error
-   */
   async loadFromCoords(lat, lon, radius = 8) {
-    let totalIntersections = 0;
-
-    // Inject a progress bar into the live region for screen reader feedback
-
-    let currentRadius = radius;
-    try {
-Utils.srAnnounce(
-  document.getElementById("announcements-mount"),
-  `<div class="progress" role="progressbar"
-     aria-label="Loading intersections"
-     aria-valuemin="0"
-     aria-valuemax="100"
-     aria-valuenow="0">
-
-  <div
-    id="loading-progress-bar"
-    class="progress-bar progress-bar-striped progress-bar-animated"
-    style="width: 0%">
-    0%
-  </div>
-
-</div>
-
-<p id="loading-progress-text" class="mt-2">
-  Loading intersections: 0%
-</p>`
-);
-
-      while (totalIntersections <= 30000 && currentRadius <= 38) {
-        const query = this._buildQuery(lat, lon, currentRadius);
-        const osmData = await this._fetchOverpass(query);
-        this._parseOsmData(osmData);
-        totalIntersections = this.intersections.size;
-
-        const percent = Math.min(Math.floor((totalIntersections / 30000) * 100), 100);
-Utils.srAnnounce(
-  document.getElementById("announcements-mount"),
-  `<div class="progress" role="progressbar"
-     aria-label="Loading intersections"
-     aria-valuemin="0"
-     aria-valuemax="100"
-     aria-valuenow="${percent}">
-
-  <div
-    id="loading-progress-bar"
-    class="progress-bar progress-bar-striped progress-bar-animated"
-    style="width: ${percent}%">
-    ${percent}%
-  </div>
-
-</div>
-
-<p id="loading-progress-text" class="mt-2">
-  Loading intersections: ${percent}%
-</p>`
-);
-        currentRadius += 5;
-      }
-      return 0;
-    } catch (error) {
-      console.error("Graph load error:", error);
-      throw error;
-      return -1;
-    }
   }
 
   /**
