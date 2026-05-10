@@ -19,8 +19,8 @@ const initData = async () => {
     const status = document.getElementById("status-text");
       let announcements = "";
 
-      const fetchResponse = await state.intersection_graph.loadFromCoords(state.lat, state.lon);
-      if (fetchResponse === -1) {
+      const fetchResponse = await state.intersection_graph.loadGraph(state.lat, state.lon);
+      if (!fetchResponse) {
         Utils.srAnnounce(
             status,
             `Unable to load intersection data. Returning to explorer mode. Click the "Switch to road mode" button to try again.`
@@ -57,6 +57,8 @@ const initData = async () => {
       state.current_road = closestNeighbor;
       state.lat = closestIntersection.lat;
       state.lon = closestIntersection.lon;
+      const tileCoords = state.intersection_graph.latLonToTileXY(state.lat, state.lon);
+      state.current_tile = `${tileCoords.x}_${tileCoords.y}`;
     const url = `?mode=road&coords=${state.lat},${state.lon}`;
     history.pushState({}, "", url);
     state.next_intersection = closestNeighbor.intersection;
@@ -69,9 +71,21 @@ export const initRoadMode = async () => {
     lucide.createIcons();
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
-    Utils.sleep(100).then(() => 
-    document.querySelector("#turn-buttons button").focus());
+    await Utils.sleep(100);
+    for (const btn of document.getElementsByTagName("button")) btn.disabled = true;
     await initData();
+    for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
+    document.querySelector("#turn-buttons button").focus();
+
+    const updateTiles = async (lat, lon) => {
+      const newTileKeyCoords = state.intersection_graph.latLonToTileXY(lat, lon);
+      const newTileKey = `${newTileKeyCoords.x}_${newTileKeyCoords.y}`;
+      const prevTileKey = state.current_tile;
+      if (newTileKey !== prevTileKey) {
+        void state.intersection_graph.loadGraph(lat, lon);
+        state.current_tile = newTileKey;
+      }
+    };
 
     document.getElementById("nav-explore-mode").addEventListener("click", () => {
       returnToExploreMode();
@@ -80,6 +94,7 @@ export const initRoadMode = async () => {
     document.getElementById("nav-new-location").addEventListener("click", () => {
       const url = location.origin + location.pathname;
       history.replaceState({}, "", url);
+      state.intersection_graph.clear();
       switchApplicationView(
         "pages/start.html",
         document.getElementById("app-mount"),
@@ -87,8 +102,10 @@ export const initRoadMode = async () => {
       );
     });
     
-    document.getElementById("nav-refresh-road").addEventListener("click", () => {
-      initData();
+    document.getElementById("nav-refresh-road").addEventListener("click", async () => {
+    for (const btn of document.getElementsByTagName("button")) btn.disabled = true;
+    await initData();
+    for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
     });
 
     document.getElementById("nav-toggle-unnamed").addEventListener("click", (e) => {
@@ -199,7 +216,7 @@ export const initRoadMode = async () => {
       Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
   });
 
-  document.getElementById("btn-go").addEventListener("click", () => {
+  document.getElementById("btn-go").addEventListener("click", async () => {
       let announcements = "";
 
       // Step 1: Advance to the previously announced next intersection
@@ -240,6 +257,7 @@ export const initRoadMode = async () => {
       // Step 3: Announce the upcoming intersection
       announcements += `<p>Next intersection: ${newNextIntersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`;
       Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
+      updateTiles(state.lat, state.lon);
   });
 
   document.getElementById("btn-turn-right").addEventListener("click", () => {

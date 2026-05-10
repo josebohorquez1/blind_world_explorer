@@ -198,7 +198,7 @@ class Edge {
     this.cardinal = cardinal;
   }
   get id() {
-    return `${this.from.id}_${this.to}_${this.street}`
+    return `${this.from.id}_${this.to.id}_${this.street.id}`;
   }
 }
 
@@ -242,10 +242,11 @@ class Intersection {
   /**
    * Appends a directed edge departing from this intersection.
    *
+   * @param {string} edgeId
    * @param {Edge} edge
    */
-  addEdge(edge) {
-    this.edges.push(edge);
+  addEdge(edgeId, edge) {
+    this.edges.set(edgeId, edge);
   }
 
   /**
@@ -366,6 +367,9 @@ class Tile {
  */
 export class IntersectionGraph {
   constructor() {
+    /** @type {Map<string, {lat: number, lon: number}>} */
+    this._nodes = new Map();
+
     /** @type {Map<string, Intersection>}  All intersections, keyed by OSM node ID */
     this.intersections = new Map();
 
@@ -458,7 +462,7 @@ _getTileBoundingBox(x, y) {
  * @param {number} lon
  * @returns {{x: number, y: number}}
  */
-_latLonToTileXY(lat, lon) {
+latLonToTileXY(lat, lon) {
   const R = 6378137; // Web Mercator radius
   const TILE_SIZE = 1000;
 
@@ -483,7 +487,8 @@ _latLonToTileXY(lat, lon) {
    * Returns true on success or false on failure.
    * @param {number} x - The x-coordinate of the tile
    * @param {number} y - The y-coordinate of the tile
-   * @returns {boolean}
+   * Returns the new tile or null if no tile was created
+   * @returns {Tile || null}
    */
   async loadTile(x, y) {
     const box = this._getTileBoundingBox(x, y);
@@ -495,8 +500,9 @@ out body;
 node(w);
 out body;
     `.trim();
+    try {
     const data = await this._fetchOverpass(query);
-    if (!data.elements) return false;
+    if (!data.elements) return null;
     const tile = new Tile(x, y, box);
     for (const el of data.elements) {
       if (el.type === "node") {
@@ -509,7 +515,11 @@ out body;
       if (el.type === "way") tile.addWay(el.id, el);
     }
     this.tiles.set(tile.key, tile);
-    return true;
+    return tile;
+    } catch (error) {
+      console.log(`Fetching error: ${error}`);
+      return null;
+    }
   }
 
   /**
@@ -519,77 +529,32 @@ out body;
    * @param {number} lat - The center lattitude 
    * @param {number} lon - The center longitude 
    * @param {number} radius - Used to calculate the tiles grid 
+   * Returns a list of new tiles 
+   * @returns {Tile[]}
    */
   async ensureTilesAround(lat, lon, radius=1) {
-    const center = this._latLonToTileXY(lat, lon);
-    for (let dx = -radius; dx < radius; dx++) {
-      for (let dy = -radius; dy < radius; ++ dy) {
+    /** @type {Tile[]}  A list of new tiles */
+    const tiles = [];
+    const center = this.latLonToTileXY(lat, lon);
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; ++ dy) {
         const x = center.x + dx;
         const y = center.y + dy;
         const key = `${x}_${y}`;
         try {
-          if (this.tiles.has(key)) await this.loadTile(x, y);
+          if (!this.tiles.has(key)) {
+            const tile = await this.loadTile(x, y);
+            if (tile) tiles.push(tile);
+            await Utils.sleep(500);
+          }
         }
         catch (error) {
-          throw error;
+          console.log(error);
+          return [];
         }
       }
     }
-  }
-
-  /**
-   * Builds directed Edge objects between all adjacent intersection nodes for each street.
-   *
-   * Iterates each street's ordered node list, connecting consecutive intersection
-   * nodes with a forward and backward Edge (treating all streets as bidirectional).
-   */
-  _buildEdges() {
-    for (const street of this.streets.values()) {
-      const nodes = street.nodeIds;
-      let lastIntersection = null;
-
-      for (const node of nodes) {
-        if (!this.intersections.has(node)) continue;
-        if (!lastIntersection) {
-          lastIntersection = node;
-          continue;
-        }
-
-        const from = this.intersections.get(lastIntersection);
-        const to = this.intersections.get(node);
-
-        const forwardDirection = Utils.getBearingAndDirection(
-          from.lat, from.lon,
-          to.lat, to.lon
-        );
-        const distance = Utils.calculateDistanceBetweenCordinates(
-          from.lat, from.lon,
-          to.lat, to.lon
-        );
-
-        const forwardEdge = new Edge(
-          from, to, street,
-          distance,
-          Math.round(forwardDirection.angle),
-          forwardDirection.cardinal
-        );
-
-        const reverseDirection = Utils.getBearingAndDirection(
-          to.lat, to.lon,
-          from.lat, from.lon
-        );
-        const backwardEdge = new Edge(
-          to, from, street,
-          distance,
-          Math.round(reverseDirection.angle),
-          reverseDirection.cardinal
-        );
-
-        from.addEdge(forwardEdge);
-        to.addEdge(backwardEdge);
-        lastIntersection = node;
-      }
-    }
+    return tiles;
   }
 
 /**
@@ -599,19 +564,33 @@ out body;
  */
 integrateTile(tile) {
 
-  /** Streets created from this tile */
+  /** @type {Street[]} Streets created from this tile */
   const streetList = [];
 
-  // ---- Create Street objects ----
-  for (const way of tile.ways) {
-    const street = new Street(way);
-    this.streets.set(way.id, street);
+  // ---- Merge tile nodes into global node map ----
+  for (const [nodeId, node] of tile.nodes) {
+    if (!this._nodes.has(nodeId)) {
+      this._nodes.set(nodeId, node);
+    }
+  }
+
+  // ---- Create / reuse Street objects ----
+  for (const [wayId, way] of tile.ways) {
+
+    let street = this.streets.get(wayId);
+
+    if (!street) {
+      street = new Street(way);
+      this.streets.set(street.id, street);
+    }
+
     streetList.push(street);
   }
 
   // ---- Build node → ways map ----
   for (const street of streetList) {
     for (const nodeId of street.nodeIds) {
+
       if (!this._nodeToWays.has(nodeId)) {
         this._nodeToWays.set(nodeId, new Set());
       }
@@ -638,13 +617,16 @@ integrateTile(tile) {
   // ---- Build Intersection objects ----
   for (const nodeId of intersectionNodes) {
 
-    const nodeData = tile.nodes.get(nodeId);
+    const nodeData = this._nodes.get(nodeId);
     if (!nodeData) continue;
 
     const { lat, lon } = nodeData;
 
     if (!this.intersections.has(nodeId)) {
-      this.intersections.set(nodeId, new Intersection(nodeId, lat, lon));
+      this.intersections.set(
+        nodeId,
+        new Intersection(nodeId, lat, lon)
+      );
     }
 
     const intersection = this.intersections.get(nodeId);
@@ -674,26 +656,29 @@ integrateTile(tile) {
       const from = this.intersections.get(prevIntersection);
       const to = this.intersections.get(nodeId);
 
-      const distance = Utils.calculateDistanceBetweenCordinates(
-        from.lat,
-        from.lon,
-        to.lat,
-        to.lon
-      );
+      const distance =
+        Utils.calculateDistanceBetweenCordinates(
+          from.lat,
+          from.lon,
+          to.lat,
+          to.lon
+        );
 
-      const fromTo = Utils.getBearingAndDirection(
-        from.lat,
-        from.lon,
-        to.lat,
-        to.lon
-      );
+      const fromTo =
+        Utils.getBearingAndDirection(
+          from.lat,
+          from.lon,
+          to.lat,
+          to.lon
+        );
 
-      const toFrom = Utils.getBearingAndDirection(
-        to.lat,
-        to.lon,
-        from.lat,
-        from.lon
-      );
+      const toFrom =
+        Utils.getBearingAndDirection(
+          to.lat,
+          to.lon,
+          from.lat,
+          from.lon
+        );
 
       const edgeForward = new Edge(
         from,
@@ -713,88 +698,31 @@ integrateTile(tile) {
         toFrom.cardinal
       );
 
-      if (!from.edges.has(edgeForward.id)) from.addEdge(edgeForward);
-      if (!to.edges.has(edgeBackward.id)) to.addEdge(edgeBackward);
+      if (!from.edges.has(edgeForward.id)) {
+        from.addEdge(edgeForward.id, edgeForward);
+      }
+
+      if (!to.edges.has(edgeBackward.id)) {
+        to.addEdge(edgeBackward.id, edgeBackward);
+      }
 
       prevIntersection = nodeId;
     }
   }
 }
 
-  /**
-   * Parses an Overpass JSON response into the graph's internal data structures.
-   * Clears all existing graph data before parsing.
-   *
-   * Steps:
-   *   1. Index all node coordinates.
-   *   2. Build Street objects from OSM ways (excluding filtered highway types).
-   *   3. Build the nodeToWayIds index.
-   *   4. Identify intersection nodes (shared by 2+ ways, or street endpoints).
-   *   5. Create Intersection objects, attach streets, and build edges.
-   *
-   * @param {object} osmData  Parsed Overpass JSON response
-   */
-  _parseOsmData(osmData) {
-    this.intersections.clear();
-    this.streets.clear();
-    this._nodeToWayIds.clear();
-    this._nodeCoords.clear();
-
-    const elements = osmData.elements || [];
-    if (elements.length === 0) return;
-
-    // Step 1: Index all node coordinates
-    for (const el of elements) {
-      if (el.type === "node") {
-        this._nodeCoords.set(String(el.id), { lat: el.lat, lon: el.lon });
-      }
+  async loadGraph(lat, lon) {
+    try {
+    const tiles = await this.ensureTilesAround(lat, lon);
+    for (const tile of tiles) {
+      this.integrateTile(tile);
+      tile.clear();
     }
-
-    // Step 2: Build Street objects, filtering excluded highway types
-    for (const el of elements) {
-      if (el.type !== "way") continue;
-      if (!el.tags?.highway) continue;
-      if (EXCLUDED_HIGHWAY_TYPES.has(el.tags.highway)) continue;
-      const street = new Street(el);
-      this.streets.set(street.id, street);
+    } catch (error) {
+      console.log(`Loading error: ${error}`);
+      return false;
     }
-
-    // Step 3: Map each node to the set of ways passing through it
-    for (const street of this.streets.values()) {
-      for (const nodeId of street.nodeIds) {
-        if (!this._nodeToWayIds.has(nodeId)) this._nodeToWayIds.set(nodeId, new Set());
-        this._nodeToWayIds.get(nodeId).add(street.id);
-      }
-    }
-
-    // Step 4: A node is an intersection if it belongs to 2+ ways, or is a street endpoint
-    const intersectionNodes = new Set();
-    for (const [nodeId, wayIds] of this._nodeToWayIds.entries()) {
-      if (wayIds.size >= 2) intersectionNodes.add(nodeId);
-    }
-    for (const street of this.streets.values()) {
-      if (street.nodeIds.length === 0) continue;
-      intersectionNodes.add(street.nodeIds[0]);
-      intersectionNodes.add(street.nodeIds[street.nodeIds.length - 1]);
-    }
-
-    // Step 5: Create Intersection objects and attach their streets
-    for (const nodeId of intersectionNodes) {
-      const coords = this._nodeCoords.get(nodeId);
-      if (!coords) continue;
-      const intersection = new Intersection(nodeId, coords.lat, coords.lon);
-      const wayIds = this._nodeToWayIds.get(nodeId) || new Set();
-      for (const wayId of wayIds) {
-        const street = this.streets.get(wayId);
-        if (street) intersection.addStreet(street);
-      }
-      this.intersections.set(nodeId, intersection);
-    }
-
-    this._buildEdges();
-  }
-
-  async loadFromCoords(lat, lon, radius = 8) {
+    return true;
   }
 
   /**
@@ -848,7 +776,7 @@ integrateTile(tile) {
 
     const neighbors = [];
 
-    for (const edge of origin.edges) {
+    for (const edge of origin.edges.values()) {
       if (this.unnamedRoadsDisabled && edge.street.isUnnamed) continue;
 
       // When unnamed roads are enabled, include all direct edges as-is
@@ -910,7 +838,7 @@ integrateTile(tile) {
         }
 
         // Advance: find the continuing edge on the same street, excluding backtracking
-        const nextEdge = currentIntersection.edges.find(
+        const nextEdge = [...currentIntersection.edges.values()].find(
           e => e.street.label === currentEdge.street.label
             && e.to.id !== currentEdge.from.id
         );
@@ -1055,5 +983,13 @@ integrateTile(tile) {
     }
 
     return best;
+  }
+
+  clear() {
+    this._nodeToWays.clear();
+    this._nodes.clear();
+    this.intersections.clear();
+    this.streets.clear();
+    this.tiles.clear();
   }
 }
