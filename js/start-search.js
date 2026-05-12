@@ -35,17 +35,15 @@ export const initSearchEvents = async () => {
     Array.from(document.body.children).forEach(el => {
         if (el.id !== "app-view") el.inert = true;
     });
-    Utils.sleep(100);
     document.getElementById("search-input").focus();
 
-    document.getElementById("search-back").addEventListener("click", () => {
+    document.getElementById("search-back").addEventListener("click", async () => {
         Array.from(document.body.children).forEach(el => el.inert = false);
-        switchApplicationView(
+        await switchApplicationView(
             "pages/start.html",
             document.getElementById("app-mount"),
             async () => {
                 initStartScreen();
-                await Utils.sleep(100);
                 document.getElementsByTagName("button")[0].focus();
             }
         );

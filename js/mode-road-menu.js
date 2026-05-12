@@ -1,3 +1,4 @@
+import { initDetailsModal } from "./details-modal.js";
 import { switchApplicationView } from "./loader.js"
 import { state } from "./state.js";
 import * as Utils from "./UtilFunctions.js"
@@ -5,7 +6,8 @@ import * as Utils from "./UtilFunctions.js"
 const injectToModal = async (content) => {
     await switchApplicationView(
         "pages/details-modal.html",
-        document.getElementById("app-mount")
+        document.getElementById("app-mount"),
+        initDetailsModal
     );
     document.getElementById("modal-content").innerHTML = content;
 }

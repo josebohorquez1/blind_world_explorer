@@ -10,14 +10,13 @@ export const coordsScreenEvents = () => {
         if (el.id !== "app-view") el.inert = true;
     }
     document.getElementsByTagName("input")[0].focus();
-    document.getElementById("back").addEventListener("click", () => {
+    document.getElementById("back").addEventListener("click", async () => {
         for (const ele of document.body.children) ele.inert = false;
-        switchApplicationView(
+        await switchApplicationView(
             "pages/start.html",
             document.getElementById("app-mount"),
             async () => {
                 initStartScreen();
-                await Utils.sleep(100);
                 document.getElementsByTagName("button")[0].focus();
             }
         );
