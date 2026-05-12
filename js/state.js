@@ -10,12 +10,8 @@ import { Street } from "./map-street.js";
  * loaded map graph, and navigation history.
  *
  * @type {{
- *   intersection_graph: IntersectionGraph,
- *
- *   // The intersection the user is currently located at (if snapped to one)
+ *   intersection_graph: IntersectionGraph, 
  *   current_intersection: Intersection | null,
- *
- *   // Information about the road the user is currently traveling along
  *   current_road: {
  *     intersection: Intersection,
  *     street: Street,
@@ -23,27 +19,13 @@ import { Street } from "./map-street.js";
  *     cardinal: string,
  *     distance: number
  *   } | null,
- *
- *   // The next intersection along the currently followed road
  *   next_intersection: Intersection | null,
- *
- *   // Key of the tile the user is currently inside (e.g. "1234_5678")
  *   current_tile: string | null,
- *
- *   // Current geographic position
  *   lat: number,
  *   lon: number,
- *
- *   // User heading in degrees (0–360, where 0 = north)
  *   current_heading: number,
- *
- *   // Distance in meters to move when issuing a forward movement command
  *   current_moving_distance: number,
- *
- *   // Degrees to rotate when issuing a turn command
  *   current_rotation_increment: number,
- *
- *   // History of visited positions for "previous location" navigation
  *   location_history: {
  *     lat: number,
  *     lon: number,

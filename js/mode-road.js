@@ -19,14 +19,16 @@ const initData = async () => {
     const status = document.getElementById("status-text");
       let announcements = "";
 
-      const fetchResponse = await state.intersection_graph.loadGraph(state.lat, state.lon);
-      if (!fetchResponse) {
-        Utils.srAnnounce(
-            status,
-            `Unable to load intersection data. Returning to explorer mode. Click the "Switch to road mode" button to try again.`
-        );
-        returnToExploreMode();
-        return;
+      if (!state.intersection_graph.isLoaded) {
+        const fetchResponse = await state.intersection_graph.loadGraph(state.lat, state.lon);
+        if (!fetchResponse) {
+          Utils.srAnnounce(
+              status,
+              `Unable to load intersection data. Returning to explorer mode. Click the "Switch to road mode" button to try again.`
+          );
+          returnToExploreMode();
+          return;
+        }
       }
 
       // Step 1: Snap to the nearest named intersection
@@ -125,7 +127,7 @@ export const initRoadMode = async () => {
     
     document.getElementById("nav-refresh-road").addEventListener("click", async () => {
     for (const btn of document.getElementsByTagName("button")) btn.disabled = true;
-    await updateTiles();
+    await state.intersection_graph.loadGraph(state.lat, state.lon);
     for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
     });
 
@@ -293,6 +295,7 @@ export const initRoadMode = async () => {
       );
       state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
       state.current_road = newNeighbor;
+      console.log(state.current_road.street.details);
       state.next_intersection = newNeighbor.intersection;
 
       announcements += `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}</p>`;
@@ -305,7 +308,7 @@ export const initRoadMode = async () => {
 
       // Find all neighbors that share the current street label (i.e., same road, both directions)
       const neighborsWithSameStreet = neighbors.filter(
-        n => n.street.label === state.current_road.street.label
+        n => n.street.key === state.current_road.street.key
       );
 
       if (neighborsWithSameStreet.length === 1) {
@@ -319,7 +322,7 @@ export const initRoadMode = async () => {
 
       // Find the neighbor on the same street with a different bearing (the reverse direction)
       const newNeighbor = neighborsWithSameStreet.find(
-        n => state.current_road.street.label === n.street.label
+        n => state.current_road.street.key === n.street.key
           && state.current_road.angle !== n.angle
       );
 

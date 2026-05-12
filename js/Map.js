@@ -386,7 +386,6 @@ integrateTile(tile) {
       this.integrateTile(tile);
       tile.clear();
     }
-    console.log(this.intersections);
     } catch (error) {
       console.log(`Loading error: ${error}`);
       throw error;
@@ -485,11 +484,11 @@ integrateTile(tile) {
 
         const namedStreets = currentIntersection.streets.filter(s => !s.isUnnamed);
         const streetsWithSameLabel = namedStreets.reduce(
-          (count, s) => (s.label === currentEdge.street.label ? count + 1 : count),
+          (count, s) => (s.key === currentEdge.street.key ? count + 1 : count),
           0
         );
         const hasCrossStreets = namedStreets.some(
-          s => s.label !== currentEdge.street.label
+          s => s.key !== currentEdge.street.key
         );
 
         // Stop if there's a cross-street or the same label forks (3+ segments = junction)
@@ -509,7 +508,7 @@ integrateTile(tile) {
 
         // Advance: find the continuing edge on the same street, excluding backtracking
         const nextEdge = [...currentIntersection.edges.values()].find(
-          e => e.street.label === currentEdge.street.label
+          e => e.street.key === currentEdge.street.key
             && e.to.id !== currentEdge.from.id
         );
         if (!nextEdge) {
@@ -652,5 +651,9 @@ integrateTile(tile) {
     this.intersections.clear();
     this.streets.clear();
     this.tiles.clear();
+  }
+
+  get isLoaded() {
+    return this.intersections.size > 0;
   }
 }

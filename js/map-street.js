@@ -28,6 +28,7 @@ export class Street {
     this.destinationStreet = osmWay.tags?.["destination:street"] ?? null;
     this.junctionRef = osmWay.tags?.["junction:ref"] || null;
     this.nodeIds = (osmWay.nodes || []).map(String);
+    this.details = osmWay;
   }
 
   /**
@@ -49,9 +50,12 @@ export class Street {
       this.highwayType === "primary_link"
       || this.highwayType === "secondary_link"
       || this.highwayType === "tertiary_link"
+      || this.highwayType === "trunk_link"
     ) return "Merging Lane";
 
-    if (this.highwayType === "motorway_link") {
+    if (
+      this.highwayType === "motorway_link"
+    ) {
       const hasNoSignage = (
         !this.junctionRef
         && !this.destinationRef
@@ -111,4 +115,126 @@ export class Street {
   get endNode() {
     return this.nodeIds[this.nodeIds.length - 1];
   }
+
+get key() {
+  function normalizeStreetName(name) {
+    if (!name) return null;
+
+    const map = {
+      st: "street",
+      rd: "road",
+      ave: "avenue",
+      av: "avenue",
+      blvd: "boulevard",
+      dr: "drive",
+      ln: "lane",
+      ct: "court",
+      pl: "place",
+      hwy: "highway",
+      pkwy: "parkway",
+      cir: "circle",
+      ter: "terrace"
+    };
+
+    return name
+      .toLowerCase()
+      .replace(/\./g, "")
+      .trim()
+      .split(/\s+/)
+      .map(w => map[w] || w)
+      .join(" ");
+  }
+
+  function normalizeRef(ref) {
+    if (!ref) return null;
+
+    const refs = ref
+      .split(";")
+      .map(r =>
+        r
+          .toLowerCase()
+          .replace(/\./g, "")
+          .replace(/\s+/g, "")
+          .trim()
+      )
+      .filter(Boolean)
+      .sort();
+
+    return refs.join("/");
+  }
+
+  const name = normalizeStreetName(this.name);
+  const ref = normalizeRef(this.ref);
+
+  if (ref && name) {
+    return `${ref}/${name}`;
+  }
+
+  if (ref) {
+    return ref;
+  }
+
+  if (name) {
+    return name;
+  }
+
+  if (this.junctionType === "roundabout") {
+    return "roundabout";
+  }
+
+  if (
+    this.highwayType === "primary_link" ||
+    this.highwayType === "secondary_link" ||
+    this.highwayType === "tertiary_link" ||
+    this.highwayType === "trunk_link"
+  ) {
+    return "merge";
+  }
+
+  if (
+    this.highwayType === "motorway_link"
+  ) {
+    const hasNoSignage =
+      !this.junctionRef &&
+      !this.destination &&
+      !this.destinationRef &&
+      !this.destinationStreet;
+
+    if (hasNoSignage) {
+      return "ramp";
+    }
+
+    const parts = [];
+
+    if (this.junctionRef) {
+      parts.push(this.junctionRef.toLowerCase().trim());
+    }
+
+    if (this.destination) {
+      parts.push(
+        this.destination.toLowerCase().replace(/\./g, "").trim()
+      );
+    }
+
+    if (this.destinationRef) {
+      parts.push(normalizeRef(this.destinationRef));
+    }
+
+    if (this.destinationStreet) {
+      parts.push(normalizeStreetName(this.destinationStreet));
+    }
+
+    return parts.join("/");
+  }
+
+  if (this.highwayType === "service") {
+    return "service";
+  }
+
+  if (this.highwayType === "residential") {
+    return "residential";
+  }
+
+  return "road";
+}
 }
