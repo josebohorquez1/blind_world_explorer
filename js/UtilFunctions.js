@@ -27,7 +27,7 @@ export const srAnnounce = (element, message) => {
   element.innerHTML = "";
   setTimeout(() => {
     element.innerHTML = message;
-  }, 25);
+  }, 50);
 };
 
 /**
