@@ -75,15 +75,54 @@ export const initRoadMode = async () => {
     const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
     await Utils.sleep(100);
     for (const btn of document.getElementsByTagName("button")) btn.disabled = true;
+    Utils.srAnnounce(
+      document.getElementById("status-text"),
+      `Loading intersections.`
+    );
+    Utils.srAnnounce(
+      document.getElementById("announcements-mount"),
+      `<div class="d-flex align-items-center gap-2" role="status" aria-live="polite">
+  <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
+  <span>Loading intersections...</span>
+</div>`
+    );
     await initData();
     for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
     document.querySelector("#turn-buttons button").focus();
 
     const updateTiles = async () => {
+      const updateUi = () => {
+        Utils.srAnnounce(
+          document.getElementById("status-text"),
+          `Current intersection: ${state.current_intersection.description}`
+        );
+        Utils.srAnnounce(
+          document.getElementById("announcements-mount"),
+          <div class="d-flex align-items-center gap-2" role="status" aria-live="polite">
+  <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
+  <span>Updating intersections...</span>
+</div>
+        );
+        const neighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading, state.current_intersection);
+        state.current_road = neighbor;
+        Utils.srAnnounce(
+          document.getElementById("announcements-mount"),
+          `<p>Updated intersections. Use the turn buttons to explore new possible directions.</p>
+          <p>Heading ${state.current_road.cardinal} on ${state.current_road.street.label}</p>
+          <p>Next intersection: ${state.next_intersection.description} ${Utils.printDistance(state.current_road.distance)} away.</p>`
+        );
+      };
       const currentTileKey = state.current_tile;
       const tile = state.intersection_graph.tiles.get(currentTileKey);
       if (!tile) {
-        void state.intersection_graph.loadGraph(state.lat, state.lon);
+        for (const el of document.getElementsByTagName("button")) el.disabled = true;
+        Utils.srAnnounce(
+          document.getElementById("status-text"),
+          `Updating intersections for further exploration.`
+        );
+        await state.intersection_graph.loadGraph(state.lat, state.lon);
+        for (const el of document.getElementsByTagName("button")) el.disabled = false;
+        updateUi();
         return;
       }
       const directions = ["north", "east", "south", "west"];
@@ -106,7 +145,14 @@ export const initRoadMode = async () => {
                 break;
       }
       if (distance <= 1000 || state.intersection_graph.getNeighbors(state.next_intersection.id).length === 1) {
-        void state.intersection_graph.loadGraph(state.lat, state.lon);
+        for (const el of document.getElementsByTagName("button")) el.disabled = true;
+        Utils.srAnnounce(
+          document.getElementById("status-text"),
+          `Updating intersections for further exploration.`
+        );
+        await state.intersection_graph.loadGraph(state.lat, state.lon);
+        for (const el of document.getElementsByTagName("button")) el.disabled = false;
+        updateUi();
       }
     };
 
@@ -295,7 +341,6 @@ export const initRoadMode = async () => {
       );
       state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
       state.current_road = newNeighbor;
-      console.log(state.current_road.street.details);
       state.next_intersection = newNeighbor.intersection;
 
       announcements += `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}</p>`;
