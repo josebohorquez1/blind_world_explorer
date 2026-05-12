@@ -98,10 +98,10 @@ export const initRoadMode = async () => {
         );
         Utils.srAnnounce(
           document.getElementById("announcements-mount"),
-          <div class="d-flex align-items-center gap-2" role="status" aria-live="polite">
+          `<div class="d-flex align-items-center gap-2" role="status" aria-live="polite">
   <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
   <span>Updating intersections...</span>
-</div>
+</div>`
         );
         const neighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading, state.current_intersection);
         state.current_road = neighbor;
