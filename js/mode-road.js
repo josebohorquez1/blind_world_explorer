@@ -389,4 +389,11 @@ export const initRoadMode = async () => {
         <p>Next intersection: ${newNeighbor.intersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`
       );
   });
+
+  document.getElementById("btn-menu").addEventListener("click", (e) => {
+    const menu = document.getElementById("menu");
+    const isHidden = (menu.hidden === true);
+    e.currentTarget.setAttribute("aria-expanded", String(isHidden));
+    menu.hidden = !isHidden;
+  });
 };
