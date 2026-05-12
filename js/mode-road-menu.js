@@ -146,4 +146,24 @@ export const initRoadMenu = () => {
         console.log(street.details)
         injectToModal(htmlTable);
     });
+
+    document.getElementById("menu-google-maps").addEventListener("click", () => {
+
+        const lat = state.lat;
+        const lon = state.lon;
+
+        const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+        window.open(url, "_blank", "noopener,noreferrer");
+    });
+
+    document.getElementById("menu-apple-maps").addEventListener("click", () => {
+
+        const lat = state.lat;
+        const lon = state.lon;
+
+        const url = `https://maps.apple.com/?ll=${lat},${lon}&q=${lat},${lon}`;
+
+        window.open(url, "_blank", "noopener,noreferrer");
+    });
 };
