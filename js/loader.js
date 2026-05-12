@@ -29,11 +29,6 @@ export async function switchApplicationView(filePath, element, callback = null) 
 
     if (callback) callback();
 
-    // Render icons if using Lucide
-    if (window.lucide) {
-      lucide.createIcons();
-    }
-
   } catch (error) {
     console.error(error);
   }

@@ -3,6 +3,7 @@ import { switchApplicationView } from "./loader.js";
 import { state } from "./state.js";
 import { initStartScreen } from "./Start.js";
 import { initExploreMode } from "./mode-explore.js";
+import { initRoadMenu } from "./mode-road-menu.js";
 
 //Fail safe function: return to explore mode.
 const returnToExploreMode = () => {
@@ -395,5 +396,6 @@ export const initRoadMode = async () => {
     const isHidden = (menu.hidden === true);
     e.currentTarget.setAttribute("aria-expanded", String(isHidden));
     menu.hidden = !isHidden;
+    if (!menu.hidden) initRoadMenu();
   });
 };
