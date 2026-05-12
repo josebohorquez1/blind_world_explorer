@@ -1,4 +1,5 @@
 import { switchApplicationView } from "./loader.js";
+import { initRoadMode } from "./mode-road.js";
 
 export const initDetailsModal = () => {
     lucide.createIcons();
@@ -9,7 +10,8 @@ export const initDetailsModal = () => {
             for (const el of document.body.children) el.inert = false;
             await switchApplicationView(
                 "pages/mode-road.html",
-                document.getElementById("app-mount")
+                document.getElementById("app-mount"),
+                initRoadMode
             );
             document.getElementById("btn-go").focus();
         });

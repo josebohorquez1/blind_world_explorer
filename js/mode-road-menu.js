@@ -9,9 +9,40 @@ const injectToModal = async (content) => {
         document.getElementById("app-mount"),
         initDetailsModal
     );
-
     document.getElementById("modal-content").innerHTML = content;
 };
+
+    const handleArrows = (event) => {
+    const menuButton = document.getElementById("btn-menu");
+    const menu = document.getElementById("menu");
+    const active = document.activeElement;
+        const items = Array.from(menu.getElementsByTagName("button"));
+        let index = items.indexOf(document.activeElement);
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+            if (active === menuButton || index === -1) {
+                items[0].focus();
+                return;
+            }
+            const next = (index + 1) % items.length;
+            items[next].focus();
+        }
+
+        if (event.key === "ArrowUp") {
+            event.preventDefault();
+            if (active === menuButton || index === -1) {
+                items[items.length - 1].focus();
+                return;
+            }
+            const prev = (index - 1 + items.length) % items.length;
+            items[prev].focus();
+        }
+
+        if (event.key === "Escape") {
+            menu.hidden = true;
+            menuButton.setAttribute("aria-expanded", false);
+        }
+    };
 
 const makeTable = (obj) => {
     let table = `
@@ -45,6 +76,10 @@ const makeTable = (obj) => {
 };
 
 export const initRoadMenu = () => {
+    document.getElementById("btn-menu").addEventListener("keydown", handleArrows);
+
+    document.getElementById("menu").addEventListener("keydown", handleArrows);
+    
     document.getElementById("menu-address").addEventListener("click", () => {
 
         fetch(
