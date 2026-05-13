@@ -33,8 +33,10 @@ const initData = async () => {
       }
 
       // Step 1: Snap to the nearest named intersection
-      const closestIntersection = state.intersection_graph.getNearestIntersection(state.lat, state.lon);
-      if (!closestIntersection) {
+      let closestIntersectionID = null;
+      if (!state.current_intersection) closestIntersectionID = state.intersection_graph.getNearestIntersection(state.lat, state.lon).id;
+      else closestIntersectionID = state.current_intersection;
+      if (!closestIntersectionID) {
         Utils.srAnnounce(
             status,
             `Unable to be placed on a road. Returning to free explore mode.`
@@ -42,6 +44,7 @@ const initData = async () => {
         returnToExploreMode();
         return;
       }
+      const closestIntersection = state.intersection_graph.getIntersection(closestIntersectionID);
       Utils.srAnnounce(
         status,
         `Current intersection: ${closestIntersection.description}`
@@ -50,13 +53,15 @@ const initData = async () => {
       // Step 2: Align heading to the nearest street by angular proximity
       const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
         state.current_heading,
-        closestIntersection
+        closestIntersectionID
       );
       state.current_heading = Utils.updateHeading(Math.round(closestNeighbor.angle));
-      announcements += `<p>Heading ${closestNeighbor.cardinal} on ${closestNeighbor.street.label}</p>`;
+      const street = state.intersection_graph.getStreet(closestNeighbor.street);
+      const nextIntersection = state.intersection_graph.getIntersection(closestNeighbor.intersection);
+      announcements += `<p>Heading ${closestNeighbor.cardinal} on ${street.label}</p>`;
 
       // Step 3: Set state and announce the next intersection along the aligned street
-      state.current_intersection = closestIntersection;
+      state.current_intersection = closestIntersectionID;
       state.current_road = closestNeighbor;
       state.lat = closestIntersection.lat;
       state.lon = closestIntersection.lon;
@@ -65,7 +70,7 @@ const initData = async () => {
     const url = `?mode=road&coords=${state.lat},${state.lon}`;
     history.pushState({}, "", url);
     state.next_intersection = closestNeighbor.intersection;
-      announcements += `<p>Next intersection: ${closestNeighbor.intersection.description} ${Utils.printDistance(closestNeighbor.distance)} away.</p>`;
+      announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(closestNeighbor.distance)} away.</p>`;
 
       Utils.srAnnounce(announcementsElement, announcements);
 };
@@ -93,36 +98,26 @@ export const initRoadMode = async () => {
 
     const updateTiles = async () => {
       const updateUi = () => {
+        const currentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
         Utils.srAnnounce(
           document.getElementById("status-text"),
-          `Current intersection: ${state.current_intersection.description}`
-        );
-        Utils.srAnnounce(
-          document.getElementById("announcements-mount"),
-          `<div class="d-flex align-items-center gap-2" role="status" aria-live="polite">
-  <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
-  <span>Updating intersections...</span>
-</div>`
+          `Current intersection: ${currentIntersection.description}`
         );
         const neighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading, state.current_intersection);
         state.current_road = neighbor;
+        const street = state.intersection_graph.getStreet(neighbor.street);
+        const nextIntersection = state.intersection_graph.getIntersection(neighbor.intersection);
         Utils.srAnnounce(
           document.getElementById("announcements-mount"),
-          `<p>Updated intersections. Use the turn buttons to explore new possible directions.</p>
-          <p>Heading ${state.current_road.cardinal} on ${state.current_road.street.label}</p>
-          <p>Next intersection: ${state.next_intersection.description} ${Utils.printDistance(state.current_road.distance)} away.</p>`
+          `<p>Updated intersection. Use the turn buttons to explore new possible directions.</p>
+          <p>Heading ${neighbor.cardinal} on ${street.label}</p>
+          <p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(state.current_road.distance)} away.</p>`
         );
       };
       const currentTileKey = state.current_tile;
       const tile = state.intersection_graph.tiles.get(currentTileKey);
       if (!tile) {
-        for (const el of document.getElementsByTagName("button")) el.disabled = true;
-        Utils.srAnnounce(
-          document.getElementById("status-text"),
-          `Updating intersections for further exploration.`
-        );
         await state.intersection_graph.loadGraph(state.lat, state.lon);
-        for (const el of document.getElementsByTagName("button")) el.disabled = false;
         updateUi();
         return;
       }
@@ -146,13 +141,7 @@ export const initRoadMode = async () => {
                 break;
       }
       if (distance <= 1000 || state.intersection_graph.getNeighbors(state.next_intersection.id).length === 1) {
-        for (const el of document.getElementsByTagName("button")) el.disabled = true;
-        Utils.srAnnounce(
-          document.getElementById("status-text"),
-          `Updating intersections for further exploration.`
-        );
         await state.intersection_graph.loadGraph(state.lat, state.lon);
-        for (const el of document.getElementsByTagName("button")) el.disabled = false;
         updateUi();
       }
     };
@@ -183,10 +172,12 @@ export const initRoadMode = async () => {
         const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading, state.current_intersection);
         state.current_road = closestNeighbor;
         state.next_intersection = closestNeighbor.intersection;
+        const street = state.intersection_graph.getStreet(closestNeighbor.street);
+        const nextIntersection = state.intersection_graph.getIntersection(closestNeighbor.intersection);
         Utils.srAnnounce(
           document.getElementById("announcements-mount"),
-          `<p>Heading ${closestNeighbor.cardinal} on ${closestNeighbor.street.label}</p>
-          <p>Next intersection: ${closestNeighbor.intersection.description} ${Utils.printDistance(closestNeighbor.distance)} away.</p>`
+          `<p>Heading ${closestNeighbor.cardinal} on ${street.label}</p>
+          <p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(closestNeighbor.distance)} away.</p>`
         );
       };
       state.intersection_graph.unnamedRoadsDisabled = !state.intersection_graph.unnamedRoadsDisabled;
@@ -226,9 +217,9 @@ export const initRoadMode = async () => {
         const nearestIntersection = state.intersection_graph.getNearestIntersection(prevLat, prevLon);
         const nearestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
           Math.round(state.current_heading),
-          nearestIntersection
+          nearestIntersection.id
         );
-        const nextIntersection = nearestNeighbor.intersection;
+        const nextIntersection = state.intersection_graph.getIntersection(nearestNeighbor.intersection);
 
         Utils.srAnnounce(
           document.getElementById("status-text"),
@@ -239,8 +230,9 @@ export const initRoadMode = async () => {
 
         state.lat = prevLat;
         state.lon = prevLon;
-        state.current_intersection = nearestIntersection;
-        state.next_intersection = nextIntersection;
+        state.current_intersection = nearestIntersection.id;
+        state.next_intersection = nextIntersection.id;
+        state.current_road = nearestNeighbor;
         state.location_history.pop();
         Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
         return;
@@ -251,20 +243,23 @@ export const initRoadMode = async () => {
         Math.round(state.current_heading),
         prevIntersection
       );
-      const nextIntersection = nearestNeighbor.intersection;
+      const currentIntersection = state.intersection_graph.getIntersection(prevIntersection);
+      const nextIntersection = state.intersection_graph.getIntersection(nearestNeighbor.intersection);
+      const street = state.intersection_graph.getStreet(nearestNeighbor.street);
 
       Utils.srAnnounce(
         document.getElementById("status-text"),
-        `Current intersection: ${prevIntersection.description}.`
+        `Current intersection: ${currentIntersection.description}.`
       );
       announcements += `<p>Returning to previously visited intersection.</p>`;
-      announcements += `<p>Heading ${nearestNeighbor.cardinal} on ${nearestNeighbor.street.label}.</p>`;
+      announcements += `<p>Heading ${nearestNeighbor.cardinal} on ${street.label}.</p>`;
       announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(nearestNeighbor.distance)} away.</p>`;
 
       state.lat = prevLat;
       state.lon = prevLon;
-      state.current_intersection = prevIntersection;
-      state.next_intersection = nextIntersection;
+      state.current_intersection = currentIntersection.id;
+      state.next_intersection = nextIntersection.id;
+      state.current_road = nearestNeighbor;
       state.location_history.pop();
       Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
   });
@@ -274,15 +269,17 @@ export const initRoadMode = async () => {
 
       // Select the neighbor reachable by the smallest counter-clockwise turn
       const newNeighbor = state.intersection_graph.getLeftTurn(
-        state.current_intersection.id,
+        state.current_intersection,
         state.current_heading
       );
       state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
       state.current_road = newNeighbor;
       state.next_intersection = newNeighbor.intersection;
 
-      announcements += `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}</p>`;
-      announcements += `<p>Next intersection: ${newNeighbor.intersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`;
+      const street = state.intersection_graph.getStreet(newNeighbor.street);
+      const nextIntersection = state.intersection_graph.getIntersection(newNeighbor.intersection);
+      announcements += `<p>Heading ${newNeighbor.cardinal} on ${street.label}</p>`;
+      announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`;
       Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
   });
 
@@ -290,16 +287,18 @@ export const initRoadMode = async () => {
       let announcements = "";
 
       // Step 1: Advance to the previously announced next intersection
-      const newCurrentIntersection = state.next_intersection;
+      const newCurrentIntersection = state.intersection_graph.getIntersection(state.next_intersection);
+      const oldCurrentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
       const newNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
         Math.round(state.current_heading),
-        newCurrentIntersection
+        newCurrentIntersection.id
       );
-      const newNextIntersection = newNeighbor.intersection;
+      const newNextIntersection = state.intersection_graph.getIntersection(newNeighbor.intersection);
+      const street = state.intersection_graph.getStreet(newNeighbor.street);
 
       // Step 2: Calculate distance traveled and announce arrival
       const distance = Utils.calculateDistanceBetweenCordinates(
-        state.current_intersection.lat, state.current_intersection.lon,
+        oldCurrentIntersection.lat, oldCurrentIntersection.lon,
         newCurrentIntersection.lat, newCurrentIntersection.lon
       );
       Utils.srAnnounce(
@@ -307,7 +306,7 @@ export const initRoadMode = async () => {
         `Current intersection: ${newCurrentIntersection.description}.`
       );
       announcements += `<p>Moved ${Utils.printDistance(distance)} ${Utils.getCardinalDirection(state.current_heading)}</p>
-        <p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}.</p>`;
+        <p>Heading ${newNeighbor.cardinal} on ${street.label}.</p>`;
 
       // Record history before updating current intersection
       state.location_history.push({
@@ -322,8 +321,9 @@ export const initRoadMode = async () => {
       state.current_tile = `${tileKeyCoords.x}_${tileKeyCoords.y}`;
         const url = `?mode=road&coords=${state.lat},${state.lon}`;
         history.pushState({}, "", url);
-      state.current_intersection = newCurrentIntersection;
-      state.next_intersection = newNextIntersection;
+      state.current_intersection = newCurrentIntersection.id;
+      state.next_intersection = newNextIntersection.id;
+      state.current_road = newNeighbor;
       state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
 
       // Step 3: Announce the upcoming intersection
@@ -337,15 +337,17 @@ export const initRoadMode = async () => {
 
       // Select the neighbor reachable by the smallest clockwise turn
       const newNeighbor = state.intersection_graph.getRightTurn(
-        state.current_intersection.id,
+        state.current_intersection,
         state.current_heading
       );
       state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
       state.current_road = newNeighbor;
       state.next_intersection = newNeighbor.intersection;
 
-      announcements += `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}</p>`;
-      announcements += `<p>Next intersection: ${newNeighbor.intersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`;
+      const street = state.intersection_graph.getStreet(newNeighbor.street);
+      const nextIntersection = state.intersection_graph.getIntersection(newNeighbor.intersection);
+      announcements += `<p>Heading ${newNeighbor.cardinal} on ${street.label}</p>`;
+      announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`;
       Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
   });
 
@@ -384,10 +386,12 @@ export const initRoadMode = async () => {
       state.current_road = newNeighbor;
       state.next_intersection = newNeighbor.intersection;
       state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
+      const street = state.intersection_graph.getStreet(newNeighbor.street);
+      const nextIntersection = state.intersection_graph.getIntersection(newNeighbor.intersection);
       Utils.srAnnounce(
         document.getElementById("announcements-mount"),
-        `<p>Heading ${newNeighbor.cardinal} on ${newNeighbor.street.label}</p>
-        <p>Next intersection: ${newNeighbor.intersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`
+        `<p>Heading ${newNeighbor.cardinal} on ${street.label}</p>
+        <p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(newNeighbor.distance)} away.</p>`
       );
   });
 

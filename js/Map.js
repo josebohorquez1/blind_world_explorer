@@ -432,8 +432,8 @@ integrateTile(tile) {
    *
    * @param {string} intersectionId  OSM node ID of the starting intersection
    * @returns {Array<{
-   *   intersection: Intersection,
-   *   street: Street,
+   *   intersection: string,
+   *   street: string,
    *   angle: number,
    *   cardinal: string,
    *   distance: number
@@ -451,8 +451,8 @@ integrateTile(tile) {
       // When unnamed roads are enabled, include all direct edges as-is
       if (!this.unnamedRoadsDisabled) {
         neighbors.push({
-          intersection: edge.to,
-          street: edge.street,
+          intersection: edge.to.id,
+          street: edge.street.id,
           angle: edge.angle,
           cardinal: edge.cardinal,
           distance: edge.distance,
@@ -469,8 +469,8 @@ integrateTile(tile) {
         // Cycle guard: if we've looped back, emit current position and stop
         if (visited.has(currentIntersection.id)) {
           neighbors.push({
-            intersection: currentIntersection,
-            street: currentEdge.street,
+            intersection: currentIntersection.id,
+            street: currentEdge.street.id,
             angle: currentEdge.angle,
             cardinal: currentEdge.cardinal,
             distance: Utils.calculateDistanceBetweenCordinates(
@@ -494,8 +494,8 @@ integrateTile(tile) {
         // Stop if there's a cross-street or the same label forks (3+ segments = junction)
         if (hasCrossStreets || streetsWithSameLabel >= 3) {
           neighbors.push({
-            intersection: currentIntersection,
-            street: currentEdge.street,
+            intersection: currentIntersection.id,
+            street: currentEdge.street.id,
             angle: currentEdge.angle,
             cardinal: currentEdge.cardinal,
             distance: Utils.calculateDistanceBetweenCordinates(
@@ -514,8 +514,8 @@ integrateTile(tile) {
         if (!nextEdge) {
           // Dead end: emit current position
           neighbors.push({
-            intersection: currentIntersection,
-            street: currentEdge.street,
+            intersection: currentIntersection.id,
+            street: currentEdge.street.id,
             angle: currentEdge.angle,
             cardinal: currentEdge.cardinal,
             distance: Utils.calculateDistanceBetweenCordinates(
@@ -545,20 +545,31 @@ integrateTile(tile) {
   }
 
   /**
+   * Gets the street based on the given ID.
+   * Returns a street if found, null otherwise 
+   * @param {string} streetId 
+   * @returns {Street|null}
+   */
+  getStreet(streetId) {
+    return this.streets.get(streetId) || null;
+  }
+  
+  /**
    * Returns the neighbor whose bearing is closest to the given heading.
    *
    * @param {number}       currentBearing  Current heading in degrees (0–360)
-   * @param {Intersection} intersection    The intersection to query neighbors from
+   * @param {string} intersectionId    The intersection to query neighbors from
    * @returns {{
-   *   intersection: Intersection,
-   *   street: Street,
+   *   intersection: string,
+   *   street: string,
    *   angle: number,
    *   cardinal: string,
    *   distance: number
    * } | null}
    */
-  closestNeighborByAngularDiff(currentBearing, intersection) {
-    const neighbors = this.getNeighbors(intersection.id);
+  closestNeighborByAngularDiff(currentBearing, intersectionId) {
+    if (!this.getIntersection(intersectionId)) return null;
+    const neighbors = this.getNeighbors(intersectionId);
     if (neighbors.length === 0) return null;
 
     let closestNeighbor = null;
@@ -582,14 +593,15 @@ integrateTile(tile) {
    * @param {string} intersectionId   OSM node ID of the current intersection
    * @param {number} currentBearing   Current heading in degrees (0–360)
    * @returns {{
-   *   intersection: Intersection,
-   *   street: Street,
+   *   intersection: string,
+   *   street: string,
    *   angle: number,
    *   cardinal: string,
    *   distance: number
    * } | null}
    */
   getLeftTurn(intersectionId, currentBearing) {
+    if (!this.getIntersection(intersectionId)) return null;
     const neighbors = this.getNeighbors(intersectionId);
     if (neighbors.length === 0) return null;
     if (neighbors.length === 1) return neighbors[0];
@@ -617,14 +629,15 @@ integrateTile(tile) {
    * @param {string} intersectionId   OSM node ID of the current intersection
    * @param {number} currentBearing   Current heading in degrees (0–360)
    * @returns {{
-   *   intersection: Intersection,
-   *   street: Street,
+   *   intersection: string,
+   *   street: string,
    *   angle: number,
    *   cardinal: string,
    *   distance: number
    * } | null}
    */
   getRightTurn(intersectionId, currentBearing) {
+    if (!this.getIntersection(intersectionId)) return null;
     const neighbors = this.getNeighbors(intersectionId);
     if (neighbors.length === 0) return null;
     if (neighbors.length === 1) return neighbors[0];

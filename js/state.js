@@ -11,16 +11,16 @@ import { Street } from "./map-street.js";
  *
  * @type {{
  *   intersection_graph: IntersectionGraph, 
- *   current_intersection: Intersection | null,
+ *   current_intersection: string,
  *   current_road: {
- *     intersection: Intersection,
- *     street: Street,
+ *     intersection: string,
+ *     street: string,
  *     angle: number,
  *     cardinal: string,
  *     distance: number
  *   } | null,
- *   next_intersection: Intersection | null,
- *   current_tile: string | null,
+ *   next_intersection: string,
+ *   current_tile: string,
  *   lat: number,
  *   lon: number,
  *   current_heading: number,
@@ -29,16 +29,16 @@ import { Street } from "./map-street.js";
  *   location_history: {
  *     lat: number,
  *     lon: number,
- *     intersection: Intersection | null
+ *     intersection: string
  *   }[]
  * }}
  */
 export const state = {
     intersection_graph: new IntersectionGraph(),
-    current_intersection: null,
+    current_intersection: "",
     current_road: null,
-    next_intersection: null,
-    current_tile: null,
+    next_intersection: "",
+    current_tile: "",
     lat: 0,
     lon: 0,
     current_heading: 0,
