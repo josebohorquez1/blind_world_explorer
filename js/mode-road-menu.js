@@ -39,8 +39,8 @@ const injectToModal = async (content) => {
         }
 
         if (event.key === "Escape") {
-            menu.hidden = true;
-            menuButton.setAttribute("aria-expanded", false);
+            event.preventDefault();
+            closeMenu(menuButton, menu);
         }
     };
 
@@ -73,6 +73,11 @@ const makeTable = (obj) => {
     `;
 
     return table;
+};
+
+const closeMenu = (button, menu) => {
+                menu.hidden = true;
+            button.setAttribute("aria-expanded", false);
 };
 
 export const initRoadMenu = () => {
@@ -117,7 +122,6 @@ export const initRoadMenu = () => {
         });
 });
 
-
     document.getElementById("menu-street-details").addEventListener("click", () => {
         const street = state.current_road.street;
         const details = {
@@ -155,6 +159,10 @@ export const initRoadMenu = () => {
         const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 
         window.open(url, "_blank", "noopener,noreferrer");
+        closeMenu(
+            document.getElementById("btn-menu"),
+            document.getElementById("menu")
+        );
     });
 
     document.getElementById("menu-apple-maps").addEventListener("click", () => {
@@ -165,5 +173,16 @@ export const initRoadMenu = () => {
         const url = `https://maps.apple.com/?ll=${lat},${lon}&q=${lat},${lon}`;
 
         window.open(url, "_blank", "noopener,noreferrer");
+        closeMenu(
+            document.getElementById("btn-menu"),
+            document.getElementById("menu")
+        );
+    });
+
+    document.getElementById("menu-close").addEventListener("click", () => {
+        closeMenu(
+            document.getElementById("btn-menu"),
+            document.getElementById("menu")
+        );
     });
 };
