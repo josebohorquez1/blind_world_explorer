@@ -13,7 +13,6 @@ export const initDetailsModal = () => {
                 document.getElementById("app-mount"),
                 initRoadMode
             );
-            document.getElementById("btn-go").focus();
         });
     }
 }

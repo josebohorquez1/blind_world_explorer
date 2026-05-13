@@ -179,6 +179,36 @@ export const initRoadMenu = () => {
         );
     });
 
+    document.getElementById("menu-copy-coords").addEventListener("click", async () => {
+        function fallback(coords) {
+            const input = document.createElement("input");
+            input.value = coords;
+            input.style.position = "absolute";
+            input.style.left = "-9999px";
+            document.body.appendChild(input);
+            input.select();
+            const success = document.execCommand("copy");
+            document.body.removeChild(input);
+            if (success) alert("Coordinates copied to clipboard.");
+            else alert("Failed to copy to clipboard.");
+        }
+        const coords = `${state.lat},${state.lon}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+            await navigator.clipboard.writeText(coords);
+            alert("Coordinates copied to clipboard.");
+        }
+        catch (error) {
+            fallback(coords);
+        }
+        }
+        else fallback(coords);
+        closeMenu(
+            document.getElementById("menu-button"),
+            document.getElementById("menu")
+        );
+    });
+
     document.getElementById("menu-close").addEventListener("click", () => {
         closeMenu(
             document.getElementById("btn-menu"),
