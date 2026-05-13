@@ -147,7 +147,6 @@ export const initRoadMenu = () => {
             "Is Bridge": street.details.tags.bridge
         };
         const htmlTable = makeTable(details);
-        console.log(street.details)
         injectToModal(htmlTable);
     });
 
@@ -208,6 +207,55 @@ export const initRoadMenu = () => {
             document.getElementById("menu")
         );
     });
+
+document.getElementById("menu-keyboard-help").addEventListener("click", () => {
+    let htmlString = "";
+
+    // Navigation
+    htmlString += "<h3 class='text-center fw-semibold mt-4 mb-3'>Navigation</h3>";
+    const navigation = {
+        "Space": "Go forward",
+        "J": "Turn left",
+        "K": "Turn around",
+        "L": "Turn right",
+        "B": "Go to previous intersection"
+    };
+    htmlString += makeTable(navigation);
+
+    // Information / Announcements
+    htmlString += "<h3 class='text-center fw-semibold mt-4 mb-3'>Information</h3>";
+    const information = {
+        "A": "Announce current address",
+        "C": "Announce current intersection",
+        "H": "Announce current heading (degrees and direction)",
+        "S": "Announce current street segment and next intersection",
+        "X": "Examine intersection layout",
+        "R": "Repeat last announcement"
+    };
+    htmlString += makeTable(information);
+
+    // System / Mode Commands
+    htmlString += "<h3 class='text-center fw-semibold mt-4 mb-3'>System</h3>";
+    const system = {
+        "Alt + A": "Address details",
+        "Alt + D": "Street details",
+        "Alt + C": "Copy coordinates",
+        "Alt + N": "Explore new location",
+        "Alt + S": "Switch to explore mode",
+        "Alt + R": "Refresh road data",
+        "Alt + U": "Enable or disable unnamed roads"
+    };
+    htmlString += makeTable(system);
+
+    // Help
+    htmlString += "<h3 class='text-center fw-semibold mt-4 mb-3'>Help</h3>";
+    const help = {
+        "/": "Open keyboard help"
+    };
+    htmlString += makeTable(help);
+
+    injectToModal(htmlString);
+});
 
     document.getElementById("menu-close").addEventListener("click", () => {
         closeMenu(
