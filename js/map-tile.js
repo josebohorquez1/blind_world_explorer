@@ -15,6 +15,7 @@ export class Tile {
     this.x = x;
     this.y = y;
     this.bbox = bbox;
+    this.isLoaded = false;
 
     /**
      * Raw OSM node data within this tile.

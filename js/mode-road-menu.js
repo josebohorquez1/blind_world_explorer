@@ -123,7 +123,7 @@ export const initRoadMenu = () => {
 });
 
     document.getElementById("menu-street-details").addEventListener("click", () => {
-        const street = state.current_road.street;
+        const street = state.intersection_graph.getStreet(state.current_road.street);
         const details = {
             "Label": street.label,
             "Name": street.name,

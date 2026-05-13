@@ -167,15 +167,15 @@ get key() {
   const ref = normalizeRef(this.ref);
 
   if (ref && name) {
-    return `${ref}/${name}`;
+    return `${this.highwayType}/${ref}/${name}`;
   }
 
   if (ref) {
-    return ref;
+    return `${this.highwayType}/${ref}`;
   }
 
   if (name) {
-    return name;
+    return `${this.highwayType}/${name}`;
   }
 
   if (this.junctionType === "roundabout") {
@@ -201,7 +201,7 @@ get key() {
       !this.destinationStreet;
 
     if (hasNoSignage) {
-      return "ramp";
+      return `${this.highwayType}/ramp`;
     }
 
     const parts = [];
@@ -224,7 +224,7 @@ get key() {
       parts.push(normalizeStreetName(this.destinationStreet));
     }
 
-    return parts.join("/");
+    return `${this.highwayType}/${parts.join("/")}`;
   }
 
   if (this.highwayType === "service") {

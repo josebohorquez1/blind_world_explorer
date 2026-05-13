@@ -96,7 +96,6 @@ export const initRoadMode = async () => {
     for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
     document.querySelector("#turn-buttons button").focus();
 
-    const updateTiles = async () => {
       const updateUi = () => {
         const currentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
         Utils.srAnnounce(
@@ -109,11 +108,12 @@ export const initRoadMode = async () => {
         const nextIntersection = state.intersection_graph.getIntersection(neighbor.intersection);
         Utils.srAnnounce(
           document.getElementById("announcements-mount"),
-          `<p>Updated intersection. Use the turn buttons to explore new possible directions.</p>
-          <p>Heading ${neighbor.cardinal} on ${street.label}</p>
+          `<p>Heading ${neighbor.cardinal} on ${street.label}</p>
           <p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(state.current_road.distance)} away.</p>`
         );
       };
+
+    const updateTiles = async () => {
       const currentTileKey = state.current_tile;
       const tile = state.intersection_graph.tiles.get(currentTileKey);
       if (!tile) {
@@ -164,6 +164,15 @@ export const initRoadMode = async () => {
     document.getElementById("nav-refresh-road").addEventListener("click", async () => {
     for (const btn of document.getElementsByTagName("button")) btn.disabled = true;
     await state.intersection_graph.loadGraph(state.lat, state.lon);
+    for (const tile of state.intersection_graph.tiles.values()) {
+      if (!tile.isLoaded) {
+        await state.intersection_graph.reloadTile(tile);
+        if (!tile.isLoaded) continue;
+        state.intersection_graph.integrateTile(tile);
+        tile.clear();
+        await Utils.sleep(1000);
+      }
+    }
     for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
     });
 
@@ -352,11 +361,12 @@ export const initRoadMode = async () => {
   });
 
   document.getElementById("btn-turn-around").addEventListener("click", () => {
-      const neighbors = state.intersection_graph.getNeighbors(state.current_intersection.id);
+      const neighbors = state.intersection_graph.getNeighbors(state.current_intersection);
 
-      // Find all neighbors that share the current street label (i.e., same road, both directions)
+      // Find all neighbors that share the current street ID (i.e., same road, both directions)
+      const currentStreet = state.intersection_graph.getStreet(state.current_road.street);
       const neighborsWithSameStreet = neighbors.filter(
-        n => n.street.key === state.current_road.street.key
+        n => state.intersection_graph.getStreet(n.street).key === currentStreet.key
       );
 
       if (neighborsWithSameStreet.length === 1) {
@@ -370,7 +380,7 @@ export const initRoadMode = async () => {
 
       // Find the neighbor on the same street with a different bearing (the reverse direction)
       const newNeighbor = neighborsWithSameStreet.find(
-        n => state.current_road.street.key === n.street.key
+        n => currentStreet.key === state.intersection_graph.getStreet(n.street).key
           && state.current_road.angle !== n.angle
       );
 

@@ -155,8 +155,8 @@ latLonToTileXY(lat, lon) {
    * Returns true on success or false on failure.
    * @param {number} x - The x-coordinate of the tile
    * @param {number} y - The y-coordinate of the tile
-   * Returns the new tile or null if no tile was created
-   * @returns {Tile || null}
+   * Returns the new loaded tile or an empty tile on failure
+   * @returns {Tile}
    */
   async loadTile(x, y) {
     const box = this._getTileBoundingBox(x, y);
@@ -168,10 +168,9 @@ out body;
 node(w);
 out body;
     `.trim();
-    try {
     const data = await this._fetchOverpass(query);
-    if (!data.elements) return null;
     const tile = new Tile(x, y, box);
+    if (data.elements) {
     for (const el of data.elements) {
       if (el.type === "node") {
         tile.addNode(
@@ -182,12 +181,43 @@ out body;
       }
       if (el.type === "way") tile.addWay(el.id, el);
     }
+    tile.isLoaded = true;
+    }
     this.tiles.set(tile.key, tile);
     return tile;
-    } catch (error) {
-      console.log(`Fetching error: ${error}`);
-      return null;
+  }
+
+  /**
+   * Reloads a tile
+   * Returns the new loaded tile, or null on failure 
+   * @param {Tile} tile 
+   * @returns {Tile | null}
+   */
+    async reloadTile(tile) {
+    const box = tile.bbox;
+const query = `
+[out:json][timeout:60];
+way["highway"]["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
+(${box.south},${box.west},${box.north},${box.east});
+out body;
+node(w);
+out body;
+    `.trim();
+    const data = await this._fetchOverpass(query);
+    if (data.elements) {
+    for (const el of data.elements) {
+      if (el.type === "node") {
+        tile.addNode(
+        el.id,
+        {lat: el.lat, lon: el.lon}
+      );
+      continue;
+      }
+      if (el.type === "way") tile.addWay(el.id, el);
     }
+    tile.isLoaded = true;
+    }
+    return tile;
   }
 
   /**
@@ -213,7 +243,7 @@ out body;
           if (!this.tiles.has(key)) {
             const tile = await this.loadTile(x, y);
             if (tile) tiles.push(tile);
-            await Utils.sleep(500);
+            await Utils.sleep(1000);
           }
         }
         catch (error) {
@@ -231,6 +261,7 @@ out body;
  * @param {Tile} tile
  */
 integrateTile(tile) {
+  if (tile.nodes.size === 0 || tile.ways.size === 0) return;
 
   /** @type {Street[]} Streets created from this tile */
   const streetList = [];
@@ -384,6 +415,7 @@ integrateTile(tile) {
     const tiles = await this.ensureTilesAround(lat, lon);
     for (const tile of tiles) {
       this.integrateTile(tile);
+      if (tile.ways) tile.isLoaded = true;
       tile.clear();
     }
     } catch (error) {
@@ -669,4 +701,5 @@ integrateTile(tile) {
   get isLoaded() {
     return this.intersections.size > 0;
   }
+
 }
