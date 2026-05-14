@@ -1,4 +1,5 @@
 import { switchApplicationView } from "./loader.js";
+import { initExploreMode } from "./mode-explore.js";
 import { initRoadMode } from "./mode-road.js";
 
 export const initDetailsModal = () => {
@@ -8,10 +9,17 @@ export const initDetailsModal = () => {
 
         document.getElementById("details-close").addEventListener("click", async () => {
             for (const el of document.body.children) el.inert = false;
-            await switchApplicationView(
+        const params = new URLSearchParams(location.search);
+        const mode = params.get("mode");
+            if (mode === "road") await switchApplicationView(
                 "pages/mode-road.html",
                 document.getElementById("app-mount"),
                 initRoadMode
+            );
+            else await switchApplicationView(
+                "pages/mode-explore.html",
+                document.getElementById("app-mount"),
+                initExploreMode
             );
         });
     }
