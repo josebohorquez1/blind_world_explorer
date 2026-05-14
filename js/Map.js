@@ -690,6 +690,67 @@ integrateTile(tile) {
     return best;
   }
 
+  /**
+   * Gets the relative direction given a heading and a set of neighbors 
+   * {number} currentHeading -  The heading in degrees 
+   * @param {Array<{
+   *   intersection: string,
+   *   street: string,
+   *   angle: number,
+   *   cardinal: string,
+   *   distance: number
+   * }>} neighbors 
+   * @returns {{
+   * left: Array<{
+   *   intersection: string,
+   *   street: string,
+   *   angle: number,
+   *   cardinal: string,
+   *   distance: number
+   * }>,
+   * right: Array<{
+   *   intersection: string,
+   *   street: string,
+   *   angle: number,
+   *   cardinal: string,
+   *   distance: number
+   * }>,
+   * ahead: Array<{
+   *   intersection: string,
+   *   street: string,
+   *   angle: number,
+   *   cardinal: string,
+   *   distance: number
+   * }>,
+   * behind: Array<{
+   *   intersection: string,
+   *   street: string,
+   *   angle: number,
+   *   cardinal: string,
+   *   distance: number
+   * }>
+   * }}
+   */
+  getRelativeDirections(currentHeading, neighbors) {
+    const result = {
+      left: [],
+      right: [],
+      ahead: [],
+      behind: []
+    };
+    const normalize = (angle) => {
+      return ((angle + 540) % 360) -180;
+    }
+    for (const neighbor of neighbors) {
+      const diff = normalize(neighbor.angle - currentHeading);
+      if (diff >= -45 && diff <= 45) result.ahead.push(neighbor);
+      else if (diff > 45 && diff <= 135) result.right.push(neighbor);
+      else if (diff < -45 && diff >= -135) result.left.push(neighbor);
+      else result.behind.push(neighbor);
+    }
+    return result;
+  }
+
   clear() {
     this._nodeToWays.clear();
     this._nodes.clear();

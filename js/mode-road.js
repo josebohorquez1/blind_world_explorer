@@ -58,6 +58,7 @@ const initData = async () => {
       state.current_heading = Utils.updateHeading(Math.round(closestNeighbor.angle));
       const street = state.intersection_graph.getStreet(closestNeighbor.street);
       const nextIntersection = state.intersection_graph.getIntersection(closestNeighbor.intersection);
+      announcements += relativeDirectionToString(state.current_heading, state.intersection_graph.getNeighbors(closestIntersectionID));
       announcements += `<p>Heading ${closestNeighbor.cardinal} on ${street.label}</p>`;
 
       // Step 3: Set state and announce the next intersection along the aligned street
@@ -74,6 +75,32 @@ const initData = async () => {
 
       Utils.srAnnounce(announcementsElement, announcements);
 };
+
+const relativeDirectionToString = (heading, neighbors) => {
+  let directions = "";
+  const result = state.intersection_graph.getRelativeDirections(heading, neighbors);
+  if (result.left.length > 0) {
+    result.left.forEach(n => 
+      directions += `<p>${state.intersection_graph.getStreet(n.street).label} goes left.</p>`
+    );
+  }
+  if (result.right.length > 0) {
+    result.right.forEach(n => 
+      directions += `<p>${state.intersection_graph.getStreet(n.street).label} goes right.</p>`
+    );
+  }
+  if (result.ahead.length > 0) {
+    result.ahead.forEach(n => 
+      directions += `<p>${state.intersection_graph.getStreet(n.street).label} continues ahead.</p>`
+    );
+  }
+  if (result.behind.length > 0) {
+    result.behind.forEach(n => 
+      directions += `<p>${state.intersection_graph.getStreet(n.street).label} goes behind.</p>`
+    );
+  }
+  return directions;
+}
 
 export const initRoadMode = async () => {
     lucide.createIcons();
@@ -315,6 +342,7 @@ export const initRoadMode = async () => {
         `Current intersection: ${newCurrentIntersection.description}.`
       );
       announcements += `<p>Moved ${Utils.printDistance(distance)} ${Utils.getCardinalDirection(state.current_heading)}</p>
+      ${relativeDirectionToString(state.current_heading, state.intersection_graph.getNeighbors(newCurrentIntersection.id))}
         <p>Heading ${newNeighbor.cardinal} on ${street.label}.</p>`;
 
       // Record history before updating current intersection
