@@ -4,6 +4,7 @@ import { state } from "./state.js";
 import { initStartScreen } from "./Start.js";
 import { initExploreModeSettings } from "./mode-explore-settings.js";
 import { initRoadMode } from "./mode-road.js";
+import { initExplorerMenu } from "./mode-explore-menu.js";
 
 /**
  * Reverse-geocodes a lat/lon coordinate into a human-readable address string
@@ -180,4 +181,12 @@ export const initExploreMode = () => {
             `<p>Zoomed out to ${Utils.printDistance(state.current_moving_distance)}</p>`
         );
     });
+
+  document.getElementById("btn-menu").addEventListener("click", (e) => {
+    const menu = document.getElementById("menu");
+    const isHidden = (menu.hidden === true);
+    e.currentTarget.setAttribute("aria-expanded", String(isHidden));
+    menu.hidden = !isHidden;
+    if (!menu.hidden) initExplorerMenu();
+  });
 }

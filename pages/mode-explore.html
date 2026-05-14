@@ -144,3 +144,64 @@
   </section>
 
 </div>
+
+  <!-- More Menu Button -->
+  <div class="d-flex justify-content-center mb-3">
+
+    <button
+      id="btn-menu"
+      class="btn btn-outline-secondary"
+      aria-haspopup="menu"
+      aria-controls="menu"
+      aria-expanded="false"
+      aria-label="More Options"
+      data-bs-toggle="tooltip"
+      data-bs-title="More options"
+    >
+      <i role="presentation" data-lucide="more-horizontal"></i>
+    </button>
+
+  </div>
+
+  <!-- Context Menu -->
+  <menu
+    id="menu"
+    class="list-group"
+    role="menu"
+    aria-label="Additional road mode actions"
+    hidden
+>
+
+    <button id="menu-address" role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="map-pin"></i>
+      Get current address Details
+    </button>
+
+    <button id="menu-google-maps" role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="external-link"></i>
+      Open in Google Maps
+    </button>
+
+    <button id="menu-apple-maps" role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="external-link"></i>
+      Open in Apple Maps
+    </button>
+
+    <button id="menu-copy-coords" role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="copy"></i>
+      Copy coordinates
+    </button>
+
+    <button id="menu-keyboard-help" role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="keyboard"></i>
+      Keyboard help
+    </button>
+
+    <button id="menu-close" role="menuitem" class="list-group-item list-group-item-action">
+      <i role="presentation" data-lucide="x"></i>
+      Close menu
+    </button>
+
+  </menu>
+
+</div>
