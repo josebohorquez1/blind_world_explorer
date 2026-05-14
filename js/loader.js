@@ -27,7 +27,7 @@ export async function switchApplicationView(filePath, element, callback = null) 
     const htmlCode = await res.text();
     element.innerHTML = htmlCode;
 
-    if (callback) callback();
+    if (callback) await callback();
 
   } catch (error) {
     console.error(error);

@@ -1,6 +1,7 @@
 import { IntersectionGraph } from "./Map.js";
 import { Intersection } from "./map-intersection.js";
 import { Street } from "./map-street.js";
+import { Neighbor } from "./map-neighbor.js";
 
 /**
  * Global application state shared across modules.
@@ -11,15 +12,7 @@ import { Street } from "./map-street.js";
  *
  * @type {{
  *   intersection_graph: IntersectionGraph, 
- *   current_intersection: string,
- *   current_road: {
- *     intersection: string,
- *     street: string,
- *     angle: number,
- *     cardinal: string,
- *     distance: number
- *   } | null,
- *   next_intersection: string,
+ *   current_neighbor: Neighbor | null,
  *   current_tile: string,
  *   lat: number,
  *   lon: number,
@@ -35,9 +28,7 @@ import { Street } from "./map-street.js";
  */
 export const state = {
     intersection_graph: new IntersectionGraph(),
-    current_intersection: "",
-    current_road: null,
-    next_intersection: "",
+    current_neighbor: null,
     current_tile: "",
     lat: 0,
     lon: 0,

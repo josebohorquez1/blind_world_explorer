@@ -7,16 +7,16 @@ export const initDetailsModal = () => {
     for (const el of document.body.children) {
         if (el.id !== "app-view") el.inert = true;
 
-        document.getElementById("details-close").addEventListener("click", async () => {
+        document.getElementById("details-close").addEventListener("click", () => {
             for (const el of document.body.children) el.inert = false;
         const params = new URLSearchParams(location.search);
         const mode = params.get("mode");
-            if (mode === "road") await switchApplicationView(
+            if (mode === "road") switchApplicationView(
                 "pages/mode-road.html",
                 document.getElementById("app-mount"),
                 initRoadMode
             );
-            else await switchApplicationView(
+            else switchApplicationView(
                 "pages/mode-explore.html",
                 document.getElementById("app-mount"),
                 initExploreMode

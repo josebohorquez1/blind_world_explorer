@@ -18,6 +18,7 @@ import { Street } from "./map-street.js";
 import { Edge } from "./map-edge.js";
 import { Intersection } from "./map-intersection.js";
 import { Tile } from "./map-tile.js";
+import { Neighbor } from "./map-neighbor.js";
 
 const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 
@@ -255,6 +256,77 @@ out body;
     return tiles;
   }
 
+  _buildEdges() {
+  for (const street of this.streets.values()) {
+    let prevIntersection = null;
+
+    for (const nodeId of street.nodeIds) {
+
+      if (!this.intersections.has(nodeId)) continue;
+
+      if (!prevIntersection) {
+        prevIntersection = nodeId;
+        continue;
+      }
+
+      const from = this.intersections.get(prevIntersection);
+      const to = this.intersections.get(nodeId);
+
+      const distance =
+        Utils.calculateDistanceBetweenCordinates(
+          from.lat,
+          from.lon,
+          to.lat,
+          to.lon
+        );
+
+      const fromTo =
+        Utils.getBearingAndDirection(
+          from.lat,
+          from.lon,
+          to.lat,
+          to.lon
+        );
+
+      const toFrom =
+        Utils.getBearingAndDirection(
+          to.lat,
+          to.lon,
+          from.lat,
+          from.lon
+        );
+
+      const edgeForward = new Edge(
+        from.id,
+        to.id,
+        street,
+        distance,
+        fromTo.angle,
+        fromTo.cardinal
+      );
+
+      const edgeBackward = new Edge(
+        to.id,
+        from.id,
+        street,
+        distance,
+        toFrom.angle,
+        toFrom.cardinal
+      );
+
+      if (!from.getEdge(edgeForward.id)) {
+        from.addEdge(edgeForward.id, edgeForward);
+      }
+
+      if (!to.getEdge(edgeBackward.id)) {
+        to.addEdge(edgeBackward.id, edgeBackward);
+      }
+
+      prevIntersection = nodeId;
+    }
+  }
+  }
+
 /**
  * Integrates a tile into the global street graph.
  * Creates streets, detects intersections, and builds edges.
@@ -327,87 +399,10 @@ integrateTile(tile) {
         new Intersection(nodeId, lat, lon)
       );
     }
-
-    const intersection = this.intersections.get(nodeId);
-    const ways = this._nodeToWays.get(nodeId);
-    if (!ways) continue;
-
-    for (const wayId of ways) {
-      const street = this.streets.get(wayId);
-      if (street) intersection.addStreet(street);
-    }
   }
 
   // ---- Build edges between intersections ----
-  for (const street of streetList) {
-
-    let prevIntersection = null;
-
-    for (const nodeId of street.nodeIds) {
-
-      if (!this.intersections.has(nodeId)) continue;
-
-      if (!prevIntersection) {
-        prevIntersection = nodeId;
-        continue;
-      }
-
-      const from = this.intersections.get(prevIntersection);
-      const to = this.intersections.get(nodeId);
-
-      const distance =
-        Utils.calculateDistanceBetweenCordinates(
-          from.lat,
-          from.lon,
-          to.lat,
-          to.lon
-        );
-
-      const fromTo =
-        Utils.getBearingAndDirection(
-          from.lat,
-          from.lon,
-          to.lat,
-          to.lon
-        );
-
-      const toFrom =
-        Utils.getBearingAndDirection(
-          to.lat,
-          to.lon,
-          from.lat,
-          from.lon
-        );
-
-      const edgeForward = new Edge(
-        from,
-        to,
-        street,
-        distance,
-        fromTo.angle,
-        fromTo.cardinal
-      );
-
-      const edgeBackward = new Edge(
-        to,
-        from,
-        street,
-        distance,
-        toFrom.angle,
-        toFrom.cardinal
-      );
-
-      if (!from.edges.has(edgeForward.id)) {
-        from.addEdge(edgeForward.id, edgeForward);
-      }
-
-      if (!to.edges.has(edgeBackward.id)) {
-        to.addEdge(edgeBackward.id, edgeBackward);
-      }
-
-      prevIntersection = nodeId;
-    }
-  }
+  this._buildEdges();
 }
 
   async loadGraph(lat, lon) {
@@ -439,7 +434,7 @@ integrateTile(tile) {
 
     for (const intersection of this.intersections.values()) {
       // Skip intersections with no named streets — they are not useful navigation targets
-      const namedStreets = intersection.streets.filter(s => !s.isUnnamed);
+      const namedStreets = [...intersection.edges.values()].filter(e => !e.segment.isUnnamed);
       if (namedStreets.length === 0) continue;
 
       const dist = Utils.calculateDistanceBetweenCordinates(
@@ -463,13 +458,7 @@ integrateTile(tile) {
    * intermediate nodes into a single neighbor entry.
    *
    * @param {string} intersectionId  OSM node ID of the starting intersection
-   * @returns {Array<{
-   *   intersection: string,
-   *   street: string,
-   *   angle: number,
-   *   cardinal: string,
-   *   distance: number
-   * }>}
+   * @returns {Array<Neighbor>}
    */
   getNeighbors(intersectionId) {
     const origin = this.intersections.get(intersectionId);
@@ -478,88 +467,89 @@ integrateTile(tile) {
     const neighbors = [];
 
     for (const edge of origin.edges.values()) {
-      if (this.unnamedRoadsDisabled && edge.street.isUnnamed) continue;
+      if (this.unnamedRoadsDisabled && edge.segment.isUnnamed) continue;
 
       // When unnamed roads are enabled, include all direct edges as-is
       if (!this.unnamedRoadsDisabled) {
-        neighbors.push({
-          intersection: edge.to.id,
-          street: edge.street.id,
-          angle: edge.angle,
-          cardinal: edge.cardinal,
-          distance: edge.distance,
-        });
+        neighbors.push(new Neighbor(
+            origin.id,
+            edge.to.id,
+            edge.segment.id,
+            edge.angle,
+            edge.cardinal,
+            edge.distance
+          ));
         continue;
       }
 
       // Walk forward along this street until a meaningful named intersection is found
       let currentEdge = edge;
-      let currentIntersection = edge.to;
+      let currentIntersection = this.getIntersection(edge.to);
       const visited = new Set();
 
       while (true) {
         // Cycle guard: if we've looped back, emit current position and stop
         if (visited.has(currentIntersection.id)) {
-          neighbors.push({
-            intersection: currentIntersection.id,
-            street: currentEdge.street.id,
-            angle: currentEdge.angle,
-            cardinal: currentEdge.cardinal,
-            distance: Utils.calculateDistanceBetweenCordinates(
-              origin.lat, origin.lon,
-              currentIntersection.lat, currentIntersection.lon
-            ),
-          });
+          neighbors.push(new Neighbor(
+            origin.id,
+            currentIntersection.id,
+            currentEdge.segment.id,
+            currentEdge.angle,
+            currentEdge.cardinal,
+            currentEdge.distance
+          ));
           break;
         }
         visited.add(currentIntersection.id);
 
-        const namedStreets = currentIntersection.streets.filter(s => !s.isUnnamed);
+        const namedStreets = [...currentIntersection.edges.values()].filter(s => !s.segment.isUnnamed);
         const streetsWithSameLabel = namedStreets.reduce(
-          (count, s) => (s.key === currentEdge.street.key ? count + 1 : count),
+          (count, s) => (s.segment.key === currentEdge.segment.key ? count + 1 : count),
           0
         );
         const hasCrossStreets = namedStreets.some(
-          s => s.key !== currentEdge.street.key
+          s => s.segment.key !== currentEdge.segment.key
         );
 
         // Stop if there's a cross-street or the same label forks (3+ segments = junction)
         if (hasCrossStreets || streetsWithSameLabel >= 3) {
-          neighbors.push({
-            intersection: currentIntersection.id,
-            street: currentEdge.street.id,
-            angle: currentEdge.angle,
-            cardinal: currentEdge.cardinal,
-            distance: Utils.calculateDistanceBetweenCordinates(
+          neighbors.push(new Neighbor(
+            origin.id,
+            currentIntersection.id,
+            currentEdge.segment.id,
+            currentEdge.angle,
+            currentEdge.cardinal,
+            Utils.calculateDistanceBetweenCordinates(
               origin.lat, origin.lon,
               currentIntersection.lat, currentIntersection.lon
-            ),
-          });
+            )
+          ));
           break;
         }
 
         // Advance: find the continuing edge on the same street, excluding backtracking
         const nextEdge = [...currentIntersection.edges.values()].find(
-          e => e.street.key === currentEdge.street.key
-            && e.to.id !== currentEdge.from.id
+          e => e.segment.key === currentEdge.segment.key
+            && e.to !== currentEdge.from
         );
         if (!nextEdge) {
           // Dead end: emit current position
-          neighbors.push({
-            intersection: currentIntersection.id,
-            street: currentEdge.street.id,
-            angle: currentEdge.angle,
-            cardinal: currentEdge.cardinal,
-            distance: Utils.calculateDistanceBetweenCordinates(
+          neighbors.push(new Neighbor(
+            origin.id,
+            currentIntersection.id,
+            currentEdge.segment.id,
+            currentEdge.angle,
+            currentEdge.cardinal,
+            Utils.calculateDistanceBetweenCordinates(
               origin.lat, origin.lon,
               currentIntersection.lat, currentIntersection.lon
-            ),
-          });
+            )
+          ));
           break;
         }
 
         currentEdge = nextEdge;
-        currentIntersection = nextEdge.to;
+        currentIntersection = this.getIntersection(nextEdge.to);
       }
     }
 
@@ -590,18 +580,10 @@ integrateTile(tile) {
    * Returns the neighbor whose bearing is closest to the given heading.
    *
    * @param {number}       currentBearing  Current heading in degrees (0–360)
-   * @param {string} intersectionId    The intersection to query neighbors from
-   * @returns {{
-   *   intersection: string,
-   *   street: string,
-   *   angle: number,
-   *   cardinal: string,
-   *   distance: number
-   * } | null}
+   * @param {Array<Neighbor>} neighbors    The list of neighbors
+   * @returns {Neighbor | null}
    */
-  closestNeighborByAngularDiff(currentBearing, intersectionId) {
-    if (!this.getIntersection(intersectionId)) return null;
-    const neighbors = this.getNeighbors(intersectionId);
+  closestNeighborByAngularDiff(currentBearing, neighbors) {
     if (neighbors.length === 0) return null;
 
     let closestNeighbor = null;
@@ -622,19 +604,11 @@ integrateTile(tile) {
    * Returns the neighbor reachable by the smallest left (counter-clockwise) turn
    * from the current heading.
    *
-   * @param {string} intersectionId   OSM node ID of the current intersection
    * @param {number} currentBearing   Current heading in degrees (0–360)
-   * @returns {{
-   *   intersection: string,
-   *   street: string,
-   *   angle: number,
-   *   cardinal: string,
-   *   distance: number
-   * } | null}
+   * @param {Array<Neighbor>} neighbors The list of neighbor objects
+   * @returns {Neighbor | null}
    */
-  getLeftTurn(intersectionId, currentBearing) {
-    if (!this.getIntersection(intersectionId)) return null;
-    const neighbors = this.getNeighbors(intersectionId);
+  getLeftTurn(currentBearing, neighbors) {
     if (neighbors.length === 0) return null;
     if (neighbors.length === 1) return neighbors[0];
 
@@ -658,19 +632,11 @@ integrateTile(tile) {
    * Returns the neighbor reachable by the smallest right (clockwise) turn
    * from the current heading.
    *
-   * @param {string} intersectionId   OSM node ID of the current intersection
    * @param {number} currentBearing   Current heading in degrees (0–360)
-   * @returns {{
-   *   intersection: string,
-   *   street: string,
-   *   angle: number,
-   *   cardinal: string,
-   *   distance: number
-   * } | null}
+   * @param {Array<Neighbor>} neighbors A list of neighbor objects
+   * @returns {Neighbor | null}
    */
-  getRightTurn(intersectionId, currentBearing) {
-    if (!this.getIntersection(intersectionId)) return null;
-    const neighbors = this.getNeighbors(intersectionId);
+  getRightTurn(currentBearing, neighbors) {
     if (neighbors.length === 0) return null;
     if (neighbors.length === 1) return neighbors[0];
 
@@ -693,42 +659,12 @@ integrateTile(tile) {
   /**
    * Gets the relative direction given a heading and a set of neighbors 
    * {number} currentHeading -  The heading in degrees 
-   * @param {Array<{
-   *   intersection: string,
-   *   street: string,
-   *   angle: number,
-   *   cardinal: string,
-   *   distance: number
-   * }>} neighbors 
+   * @param {Array<Neighbor>} neighbors 
    * @returns {{
-   * left: Array<{
-   *   intersection: string,
-   *   street: string,
-   *   angle: number,
-   *   cardinal: string,
-   *   distance: number
-   * }>,
-   * right: Array<{
-   *   intersection: string,
-   *   street: string,
-   *   angle: number,
-   *   cardinal: string,
-   *   distance: number
-   * }>,
-   * ahead: Array<{
-   *   intersection: string,
-   *   street: string,
-   *   angle: number,
-   *   cardinal: string,
-   *   distance: number
-   * }>,
-   * behind: Array<{
-   *   intersection: string,
-   *   street: string,
-   *   angle: number,
-   *   cardinal: string,
-   *   distance: number
-   * }>
+   * left: Array<Neighbor>,
+   * right: Array<Neighbor>,
+   * ahead: Array<Neighbor>,
+   * behind: Array<Neighbor>
    * }}
    */
   getRelativeDirections(currentHeading, neighbors) {

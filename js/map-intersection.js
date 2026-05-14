@@ -9,6 +9,8 @@
  *   edges   {Map<string, Edge>}    All directed edges departing from this node
  */
 
+import { Edge } from "./map-edge.js";
+
 export class Intersection {
   /**
    * @param {string} id   OSM node ID
@@ -19,21 +21,9 @@ export class Intersection {
     this.id = id;
     this.lat = lat;
     this.lon = lon;
-    /** @type {Street[]} */
-    this.streets = [];
+    
     /** @type {Map<string, Edge>} */
     this.edges = new Map();
-  }
-
-  /**
-   * Adds a street to this intersection, skipping duplicates by ID.
-   *
-   * @param {Street} street
-   */
-  addStreet(street) {
-    if (!this.streets.find((s) => s.id === street.id)) {
-      this.streets.push(street);
-    }
   }
 
   /**
@@ -47,14 +37,24 @@ export class Intersection {
   }
 
   /**
+   * Gets an edge based on an edge ID
+   * Returns the edge if found, otherwise null
+   * @param {string} edgeId 
+   * @returns {Edge | null}
+   */
+  getEdge(edgeId) {
+    return this.edges.get(edgeId) ?? null;
+  }
+
+  /**
    * Deduplicated list of display labels for all streets at this intersection.
    *
    * @returns {string[]}
    */
   get streetNames() {
     const seen = new Set();
-    return this.streets
-      .map((s) => s.label)
+    return [...this.edges.values()]
+      .map((e) => e.segment.label)
       .filter((name) => {
         if (seen.has(name)) return false;
         seen.add(name);
