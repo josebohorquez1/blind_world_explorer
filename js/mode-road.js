@@ -338,9 +338,6 @@ const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
       announcements += `<p>Moved ${Utils.printDistance(distance)} ${Utils.getCardinalDirection(state.current_heading)}</p>
       ${relativeDirectionToString(state.current_heading, state.intersection_graph.getNeighbors(newCurrentIntersection.id))}
         <p>On ${street.label}, heading ${newNeighbor.cardinalDirection}</p>`;
-        console.log(
-          state.intersection_graph.getNeighbors(newCurrentIntersection.id)
-        );
 
       // Record history before updating current intersection
       state.location_history.push({
