@@ -3,24 +3,15 @@ import { initExploreMode } from "./mode-explore.js";
 import { initRoadMode } from "./mode-road.js";
 
 export const initDetailsModal = () => {
-    lucide.createIcons();
-    for (const el of document.body.children) {
-        if (el.id !== "app-view") el.inert = true;
 
-        document.getElementById("details-close").addEventListener("click", () => {
-            for (const el of document.body.children) el.inert = false;
-        const params = new URLSearchParams(location.search);
-        const mode = params.get("mode");
-            if (mode === "road") switchApplicationView(
-                "pages/mode-road.html",
-                document.getElementById("app-mount"),
-                initRoadMode
-            );
-            else switchApplicationView(
-                "pages/mode-explore.html",
-                document.getElementById("app-mount"),
-                initExploreMode
-            );
-        });
-    }
-}
+    const close = document.getElementById("modal-close");
+
+    close.addEventListener("click", () => {
+        const overlay = close.closest("div").parentElement;
+        overlay.remove();
+        document.getElementById("menu").hidden = true;
+        document.getElementById("btn-menu")
+        .setAttribute("aria-expanded", "false");
+    });
+
+};

@@ -1,15 +1,61 @@
 import { initDetailsModal } from "./details-modal.js";
-import { switchApplicationView } from "./loader.js";
 import { state } from "./state.js";
 import * as Utils from "./UtilFunctions.js";
 
 const injectToModal = async (content) => {
-    await switchApplicationView(
-        "pages/details-modal.html",
-        document.getElementById("app-mount"),
-        initDetailsModal
-    );
-    document.getElementById("modal-content").innerHTML = content;
+
+    const mount = document.getElementById("app-mount");
+
+    const res = await fetch("pages/details-modal.html");
+
+    if (!res.ok) {
+        console.error("Failed to load modal");
+        return;
+    }
+
+    const html = await res.text();
+
+    const overlay = document.createElement("div");
+
+    overlay.id = "modal";
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.background = "rgba(0,0,0,0.45)";
+    overlay.style.display = "flex";
+    overlay.style.justifyContent = "center";
+    overlay.style.alignItems = "center";
+    overlay.style.zIndex = "1000";
+
+    const modalContainer = document.createElement("div");
+
+    modalContainer.style.background = "white";
+    modalContainer.style.maxWidth = "600px";
+    modalContainer.style.width = "90%";
+    modalContainer.style.maxHeight = "90vh";
+    modalContainer.style.overflow = "auto";
+    modalContainer.style.borderRadius = "8px";
+    modalContainer.style.padding = "1rem";
+    modalContainer.style.boxShadow = "0 10px 30px rgba(0,0,0,0.4)";
+
+    modalContainer.setAttribute("role", "dialog");
+    modalContainer.setAttribute("aria-modal", "true");
+    modalContainer.setAttribute("tabindex", "-1");
+
+    modalContainer.innerHTML = html;
+
+    overlay.appendChild(modalContainer);
+    mount.appendChild(overlay);
+
+    const modalContent = modalContainer.querySelector("#modal-content");
+
+    if (modalContent) {
+        modalContent.innerHTML = content;
+    }
+
+    initDetailsModal();
+
+    modalContainer.focus();
+
 };
 
     const handleArrows = (event) => {
