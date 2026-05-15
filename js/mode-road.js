@@ -93,11 +93,17 @@ const relativeDirectionToString = (heading, neighbors) => {
     behind: "continues behind"
   };
   for (const [direction, phrase] of Object.entries(directionLabels)) {
-    const list = result[direction];
+    const seen = new Set();
+    const list = result[direction]
+    .map(n => state.intersection_graph.getStreet(n.wayId).label)
+    .filter(name => {
+      if (seen.has(name)) return false;
+      seen.add(name);
+      return true;
+    });
     if (!list || list.length === 0) continue;
-    for (const n of list) {
-      const streetLabel = state.intersection_graph.getStreet(n.wayId).label;
-      directionsString += `<p>${streetLabel}, ${phrase}</p>`;
+    for (const label of list) {
+      directionsString += `<p>${label}, ${phrase}</p>`;
     }
   }
   return directionsString;
