@@ -411,7 +411,7 @@ const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
       state.current_neighbor = newNeighbor;
       state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
       const street = state.intersection_graph.getStreet(newNeighbor.wayId);
-      const nextIntersection = state.intersection_graph.getIntersection(newNeighbor.wayId);
+      const nextIntersection = state.intersection_graph.getIntersection(newNeighbor.nextIntersectionId);
       Utils.srAnnounce(
         document.getElementById("announcements-mount"),
         `<p>${street.label}, heading ${newNeighbor.cardinalDirection}</p>
