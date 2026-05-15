@@ -227,8 +227,11 @@ export const initRoadMenu = () => {
     document.getElementById("menu-copy-coords").addEventListener("click", async () => {
         function fallback(coords) {
             const input = document.createElement("input");
+            input.type = "text";
             input.value = coords;
-            input.style.position = "absolute";
+            input.readOnly = true;
+            input.style.position = "fixed";
+            input.style.top = 0;
             input.style.left = "-9999px";
             document.body.appendChild(input);
             input.select();
