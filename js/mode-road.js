@@ -59,18 +59,8 @@ export const initRoadMode = async () => {
 
     document.getElementById("nav-toggle-unnamed").addEventListener("click", (e) => {
       const getNeighbors = () => {
-        const neighbors = state.intersection_graph.getNeighbors(
-          state.current_neighbor.originIntersectionId
-        )
-        const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading, neighbors);
-        state.current_neighbor = closestNeighbor;
-        const street = state.intersection_graph.getStreet(closestNeighbor.wayId);
-        const nextIntersection = state.intersection_graph.getIntersection(closestNeighbor.nextIntersectionId);
-        Utils.srAnnounce(
-          document.getElementById("announcements-mount"),
-          `<p>${street.label}, heading ${closestNeighbor.cardinalDirection}</p>
-          <p>Next intersection: ${nextIntersection.description}, ${Utils.printDistance(closestNeighbor.distance)}</p>`
-        );
+const alignAnnouncement = roadUtils.updateAlignment(state.current_heading,state.current_intersection, "", true);
+Utils.srAnnounce(announcementsMount, `${alignAnnouncement}`);
       };
       state.intersection_graph.unnamedRoadsDisabled = !state.intersection_graph.unnamedRoadsDisabled;
       if (!state.intersection_graph.unnamedRoadsDisabled) {
