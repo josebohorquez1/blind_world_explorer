@@ -105,7 +105,7 @@ const relativeDirectionToString = (heading, neighbors) => {
 
       const updateUi = () => {
         const currentIntersection = state.intersection_graph.getIntersection(
-          state.current_neighbor.currentIntersectionId
+          state.current_neighbor.originIntersectionId
         );
         const neighbors = state.intersection_graph.getNeighbors(
           currentIntersection.id
@@ -152,7 +152,7 @@ const relativeDirectionToString = (heading, neighbors) => {
                 distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, state.lat, tile.bbox.west);
                 break;
       }
-      if (distance <= 1000 || state.intersection_graph.getNeighbors(state.current_neighbor.currentIntersectionId).length === 1) {
+      if (distance <= 1000 || state.intersection_graph.getNeighbors(state.current_neighbor.originIntersectionId).length === 1) {
         await state.intersection_graph.loadGraph(state.lat, state.lon);
         updateUi();
       }
@@ -202,7 +202,7 @@ export const initRoadMode = async () => {
     document.getElementById("nav-toggle-unnamed").addEventListener("click", (e) => {
       const getNeighbors = () => {
         const neighbors = state.intersection_graph.getNeighbors(
-          state.current_neighbor.currentIntersectionId
+          state.current_neighbor.originIntersectionId
         )
         const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(state.current_heading, neighbors);
         state.current_neighbor = closestNeighbor;
@@ -284,7 +284,7 @@ const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
 
       // Select the neighbor reachable by the smallest counter-clockwise turn
       const neighbors = state.intersection_graph.getNeighbors(
-        state.current_neighbor.currentIntersectionId
+        state.current_neighbor.originIntersectionId
       );
       const newNeighbor = state.intersection_graph.getLeftTurn(
         state.current_heading, neighbors
@@ -307,7 +307,7 @@ const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
         state.current_neighbor.nextIntersectionId
       );
       const oldCurrentIntersection = state.intersection_graph.getIntersection(
-        state.current_neighbor.currentIntersectionId
+        state.current_neighbor.originIntersectionId
       );
       const neighbors = state.intersection_graph.getNeighbors(
         newCurrentIntersection.id
@@ -358,7 +358,7 @@ const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
 
       // Select the neighbor reachable by the smallest clockwise turn
       const neighbors = state.intersection_graph.getNeighbors(
-        state.current_neighbor.currentIntersectionId
+        state.current_neighbor.originIntersectionId
       );
       const newNeighbor = state.intersection_graph.getRightTurn(
         state.current_heading, neighbors
@@ -375,11 +375,11 @@ const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
 
   document.getElementById("btn-turn-around").addEventListener("click", () => {
       const neighbors = state.intersection_graph.getNeighbors(
-        state.current_neighbor.currentIntersectionId
+        state.current_neighbor.originIntersectionId
       );
 
       // Find all neighbors that share the current street ID (i.e., same road, both directions)
-      const currentStreetKey = state.intersection_graph.getStreet(state.current_neighbor.wayId);
+      const currentStreetKey = state.intersection_graph.getStreet(state.current_neighbor.wayId).key;
       const neighborsWithSameStreet = neighbors.filter(
         n => state.intersection_graph.getStreet(n.wayId).key === currentStreetKey
       );
