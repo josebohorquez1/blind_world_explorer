@@ -93,14 +93,41 @@ export class Street {
    *
    * @returns {boolean}
    */
-  get isUnnamed() {
-    return (
-      !this.ref
-      && !this.name
-      && this.junctionType !== "roundabout"
-      && this.highwayType !== "motorway_link"
-    );
+get isUnnamed() {
+
+  const allowedHighwayTypes = [
+    "motorway",
+    "motorway_link",
+    "trunk",
+    "primary",
+    "secondary",
+    "tertiary"
+  ];
+
+  const disallowedHighwayTypes = [
+    "primary_link",
+    "secondary_link",
+    "tertiary_link",
+    "trunk_link",
+  ];
+  if (this.junctionType === "roundabout") {
+    return true;
   }
+
+  if (disallowedHighwayTypes.includes(this.highwayType)) {
+    return true;
+  }
+
+  if (allowedHighwayTypes.includes(this.highwayType)) {
+    return false;
+  }
+
+  if (!this.name && !this.ref) {
+    return true;
+  }
+
+  return false;
+}
 
   /**
    * Returns the beginning node

@@ -57,6 +57,15 @@ export const initExploreMode = () => {
     document.getElementById("nav-new-location").addEventListener("click", () => {
         const url = location.origin + location.pathname;
         history.replaceState({}, "", url);
+        state.current_heading = 0;
+        state.current_moving_distance = 90;
+        state.current_neighbor = null;
+        state.current_rotation_increment = 45;
+        state.current_tile = "";
+        state.intersection_graph.clear();
+        state.lat = 0;
+        state.location_history= [];
+        state.lon = 0;
         switchApplicationView(
             "pages/start.html",
             document.getElementById("app-mount"),

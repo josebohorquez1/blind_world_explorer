@@ -473,7 +473,7 @@ integrateTile(tile) {
       if (!this.unnamedRoadsDisabled) {
         neighbors.push(new Neighbor(
             origin.id,
-            edge.to.id,
+            edge.to,
             edge.segment.id,
             edge.angle,
             edge.cardinal,

@@ -152,7 +152,7 @@ const relativeDirectionToString = (heading, neighbors) => {
                 distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, state.lat, tile.bbox.west);
                 break;
       }
-      if (distance <= 1000 || state.intersection_graph.getNeighbors(state.current_neighbor.originIntersectionId).length === 1) {
+      if (distance <= 1000) {
         await state.intersection_graph.loadGraph(state.lat, state.lon);
         updateUi();
       }
@@ -176,8 +176,16 @@ export const initRoadMode = async () => {
     document.getElementById("nav-new-location").addEventListener("click", () => {
       const url = location.origin + location.pathname;
       history.replaceState({}, "", url);
-      state.intersection_graph.clear();
-      switchApplicationView(
+        state.current_heading = 0;
+        state.current_moving_distance = 90;
+        state.current_neighbor = null;
+        state.current_rotation_increment = 45;
+        state.current_tile = "";
+        state.intersection_graph.clear();
+        state.lat = 0;
+        state.location_history= [];
+        state.lon = 0;
+        switchApplicationView(
         "pages/start.html",
         document.getElementById("app-mount"),
         initStartScreen
@@ -270,7 +278,7 @@ const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
       );
       announcements += relativeDirectionToString(closestNeighbor.angle, neighbors);
       announcements += `<p>On ${street.label}, heading ${closestNeighbor.cardinalDirection}</p>`;
-      announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(nearestNeighbor.distance)} away.</p>`;
+      announcements += `<p>Next intersection: ${nextIntersection.description} ${Utils.printDistance(closestNeighbor.distance)} away.</p>`;
 
       state.lat = prevLat;
       state.lon = prevLon;
@@ -330,6 +338,9 @@ const closestNeighbor = state.intersection_graph.closestNeighborByAngularDiff(
       announcements += `<p>Moved ${Utils.printDistance(distance)} ${Utils.getCardinalDirection(state.current_heading)}</p>
       ${relativeDirectionToString(state.current_heading, state.intersection_graph.getNeighbors(newCurrentIntersection.id))}
         <p>On ${street.label}, heading ${newNeighbor.cardinalDirection}</p>`;
+        console.log(
+          state.intersection_graph.getNeighbors(newCurrentIntersection.id)
+        );
 
       // Record history before updating current intersection
       state.location_history.push({
