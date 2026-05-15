@@ -95,38 +95,24 @@ export class Street {
    */
 get isUnnamed() {
 
-  const allowedHighwayTypes = [
-    "motorway",
-    "motorway_link",
-    "trunk",
-    "primary",
-    "secondary",
-    "tertiary"
-  ];
-
   const disallowedHighwayTypes = [
     "primary_link",
     "secondary_link",
     "tertiary_link",
     "trunk_link",
   ];
-  if (this.junctionType === "roundabout") {
-    return true;
-  }
 
-  if (disallowedHighwayTypes.includes(this.highwayType)) {
-    return true;
-  }
-
-  if (allowedHighwayTypes.includes(this.highwayType)) {
+  // Motorways are never unnamed
+  if (this.highwayType === "motorway" || this.highwayType === "motorway_link") {
     return false;
   }
 
-  if (!this.name && !this.ref) {
-    return true;
+  // Roads with names/refs are allowed unless disallowed
+  if ((this.name || this.ref) && !disallowedHighwayTypes.includes(this.highwayType)) {
+    return false;
   }
 
-  return false;
+  return true;
 }
 
   /**

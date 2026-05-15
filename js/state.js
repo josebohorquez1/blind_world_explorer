@@ -12,6 +12,7 @@ import { Neighbor } from "./map-neighbor.js";
  *
  * @type {{
  *   intersection_graph: IntersectionGraph, 
+ * current_intersection: string, 
  *   current_neighbor: Neighbor | null,
  *   current_tile: string,
  *   lat: number,
@@ -28,6 +29,7 @@ import { Neighbor } from "./map-neighbor.js";
  */
 export const state = {
     intersection_graph: new IntersectionGraph(),
+    currentIntersection: "",
     current_neighbor: null,
     current_tile: "",
     lat: 0,
