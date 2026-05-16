@@ -4,58 +4,42 @@ import * as Utils from "./UtilFunctions.js";
 
 const injectToModal = async (content) => {
 
-    const mount = document.getElementById("app-mount");
+    let modalEl = document.getElementById("detailsModal");
 
-    const res = await fetch("pages/details-modal.html");
+    // If modal is not yet in the DOM, load it
+    if (!modalEl) {
 
-    if (!res.ok) {
-        console.error("Failed to load modal");
+        const mount = document.getElementById("app-mount");
+
+        const res = await fetch("pages/details-modal.html");
+
+        if (!res.ok) {
+            console.error("Failed to load modal");
+            return;
+        }
+
+        const html = await res.text();
+
+        mount.insertAdjacentHTML("beforeend", html);
+
+        modalEl = document.getElementById("detailsModal");
+
+        // initialize modal behavior
+        initDetailsModal();
+    }
+
+    const modalContent = modalEl.querySelector("#modal-content");
+
+    if (!modalContent) {
+        console.error("Modal content container missing");
         return;
     }
 
-    const html = await res.text();
+    modalContent.innerHTML = content;
 
-    const overlay = document.createElement("div");
-
-    overlay.id = "modal";
-    overlay.style.position = "fixed";
-    overlay.style.inset = "0";
-    overlay.style.background = "rgba(0,0,0,0.45)";
-    overlay.style.display = "flex";
-    overlay.style.justifyContent = "center";
-    overlay.style.alignItems = "center";
-    overlay.style.zIndex = "1000";
-
-    const modalContainer = document.createElement("div");
-
-    modalContainer.style.background = "white";
-    modalContainer.style.maxWidth = "600px";
-    modalContainer.style.width = "90%";
-    modalContainer.style.maxHeight = "90vh";
-    modalContainer.style.overflow = "auto";
-    modalContainer.style.borderRadius = "8px";
-    modalContainer.style.padding = "1rem";
-    modalContainer.style.boxShadow = "0 10px 30px rgba(0,0,0,0.4)";
-
-    modalContainer.setAttribute("role", "dialog");
-    modalContainer.setAttribute("aria-modal", "true");
-    modalContainer.setAttribute("tabindex", "-1");
-
-    modalContainer.innerHTML = html;
-
-    overlay.appendChild(modalContainer);
-    mount.appendChild(overlay);
-
-    const modalContent = modalContainer.querySelector("#modal-content");
-
-    if (modalContent) {
-        modalContent.innerHTML = content;
-    }
-
-    initDetailsModal();
-
-    modalContainer.focus();
-
+    // show modal using Bootstrap
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
 };
 
     const handleArrows = (event) => {

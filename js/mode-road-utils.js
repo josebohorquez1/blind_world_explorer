@@ -124,7 +124,7 @@ export const updateIntersection= (heading, intersectionId, updateState = false) 
     const url = `?mode=road&coords=${state.lat},${state.lon}`;
     history.pushState({}, "", url);
   }
-  return {originIntersectionStr, nextIntersectionStr, neighbor};
+  return {originIntersectionStr, nextIntersectionStr};
 };
 
 /**
@@ -162,7 +162,7 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
     <p>Next intersection: ${nextIntersection.description}, ${Utils.printDistance(neighbor.distance)}</p>`;
 };
 
-    const updateTiles = async () => {
+    export const updateTiles = async () => {
       const updateUi = () => {
       const intersectionAnnouncements = updateIntersection(state.current_heading, state.current_intersection, false);
       const alignAnnouncements = updateAlignment(state.current_heading, state.current_intersection, "", true);

@@ -1,23 +1,31 @@
-<div id="detailsModal"
-     class="position-fixed top-0 start-0 w-100 h-100 bg-body d-flex flex-column p-3"
-     role="dialog"
+<div class="modal fade"
+     id="detailsModal"
+     tabindex="-1"
      aria-labelledby="detailsModalLabel"
-     style="z-index:1055;">
+     aria-hidden="true">
 
-  <!-- Close Button -->
-  <button id="modal-close"
-  aria-label="close"
-          class="btn btn-link align-self-start mb-3">
-    <span aria-hidden="true">×</span>
-  </button>
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
 
-  <!-- Main Content -->
-  <div class="container my-auto" style="max-width:700px;">
-    <!-- Injected Content -->
-    <div id="modal-content">
-      <!-- Content injected here -->
+      <!-- Header -->
+      <div class="modal-header">
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body d-flex flex-column">
+
+        <div class="container my-auto" style="max-width:700px;">
+          <div id="modal-content">
+            <!-- Injected Content -->
+          </div>
+        </div>
+
+      </div>
+
     </div>
-
   </div>
-
 </div>

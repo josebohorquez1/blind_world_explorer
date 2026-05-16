@@ -109,29 +109,6 @@ export const calculateDistanceBetweenCordinates = (lat1, lon1, lat2, lon2) => {
 };
 
 /**
- * Computes a bounding box around a center point given a radius in kilometers.
- *
- * @param {number} center_lat   Center latitude in degrees
- * @param {number} center_lon   Center longitude in degrees
- * @param {number} radius_km    Radius (expected in km, but see note above)
- * @returns {{ south: number, west: number, north: number, east: number }}
- *   Bounding box corners in degrees
- */
-export const getBoundingBox = (center_lat, center_lon, radius_km) => {
-  const lat_deg_per_km = 111.32;
-  // Longitude degrees per km shrinks toward the poles
-  const lon_deg_per_km = 111.32 * Math.cos(center_lat * Math.PI / 180);
-  const delta_lat = radius_km / lat_deg_per_km;
-  const delta_lon = radius_km / lon_deg_per_km;
-  return {
-    south: center_lat - delta_lat,
-    west:  center_lon - delta_lon,
-    north: center_lat + delta_lat,
-    east:  center_lon + delta_lon,
-  };
-};
-
-/**
  * Computes the initial bearing and cardinal direction from one lat/lon point to another.
  * Returns a value in [0, 360), where 0 is North, increasing clockwise along with one of the eight compass directions.
  *

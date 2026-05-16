@@ -126,18 +126,21 @@ const alignAnnouncement = roadUtils.updateAlignment(state.current_heading, curre
 
       // Step 1: Advance to the previously announced next intersection
       const oldCurrentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
-      const oldIntersectionAnnouncements = roadUtils.updateIntersection(state.current_heading, state.current_intersection, true);
+      const newIntersectionAnnouncements = roadUtils.updateIntersection(state.current_heading, state.current_intersection, true);
       const alignAnnouncement = roadUtils.updateAlignment(state.current_heading, state.current_intersection, "", true);
       const newCurrentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
-      const newIntersectionAnnouncements = roadUtils.updateIntersection(state.current_heading, newCurrentIntersection.id, false);
 
       // Step 2: Calculate distance traveled and announce arrival
       const distance = Utils.calculateDistanceBetweenCordinates(
         oldCurrentIntersection.lat, oldCurrentIntersection.lon,
         newCurrentIntersection.lat, newCurrentIntersection.lon
       );
+      const direction = Utils.getBearingAndDirection(
+        oldCurrentIntersection.lat, oldCurrentIntersection.lon,
+        newCurrentIntersection.lat, newCurrentIntersection.lon
+      ).cardinal;
       Utils.srAnnounce(statusMount, `Current intersection: ${newCurrentIntersection.description}.`);
-      announcements += `<p>Moved ${Utils.printDistance(distance)} ${Utils.getCardinalDirection(state.current_heading)}</p>
+      announcements += `<p>Moved ${Utils.printDistance(distance)} ${direction}</p>
       ${alignAnnouncement}`;
 
       // Step 3: Announce the upcoming intersection
