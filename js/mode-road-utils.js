@@ -1,13 +1,13 @@
 import { switchApplicationView } from "./loader.js";
-
 import { Street } from "./map-street.js";
 import { Intersection } from "./map-intersection.js";
 import { Neighbor } from "./map-neighbor.js";
 import { state } from "./state.js";
 import * as Utils from "./UtilFunctions.js";
+import { initExploreMode } from "./mode-explore.js";
 
 //Fail safe function: return to explore mode.
-const returnToExploreMode = () => {
+export const returnToExploreMode = () => {
   document.getElementById("announcements-mount").innerHTML = "";
     switchApplicationView(
         "pages/mode-explore.html",
