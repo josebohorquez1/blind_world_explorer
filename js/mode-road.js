@@ -155,49 +155,8 @@ const alignAnnouncement = roadUtils.updateAlignment(state.current_heading, curre
   });
 
   document.getElementById("btn-turn-around").addEventListener("click", () => {
-      const neighbors = state.intersection_graph.getNeighbors(
-        state.current_neighbor.originIntersectionId
-      );
-
-      // Find all neighbors that share the current street ID (i.e., same road, both directions)
-      const currentStreetKey = state.intersection_graph.getStreet(state.current_neighbor.wayId).key;
-      const neighborsWithSameStreet = neighbors.filter(
-        n => state.intersection_graph.getStreet(n.wayId).key === currentStreetKey
-      );
-
-      if (neighborsWithSameStreet.length === 1) {
-        // Only one direction exists for this street — a U-turn is not possible
-        Utils.srAnnounce(
-          document.getElementById("announcements-mount"),
-          `<p>Unable to turn around: current street only runs in one direction.</p>`
-        );
-        return;
-      }
-
-      // Find the neighbor on the same street with a different bearing (the reverse direction)
-      const newNeighbor = neighborsWithSameStreet.find(
-        n => currentStreetKey === state.intersection_graph.getStreet(n.wayId).key
-          && state.current_neighbor.angle !== n.angle
-      );
-
-      // No neighbor found matching the above criteria
-      if (!newNeighbor) {
-        Utils.srAnnounce(
-          document.getElementById("announcements-mount"),
-          `<p>Unable to turn around.</p>`
-        );
-        return;
-      }
-
-      state.current_neighbor = newNeighbor;
-      state.current_heading = Utils.updateHeading(Math.round(newNeighbor.angle));
-      const street = state.intersection_graph.getStreet(newNeighbor.wayId);
-      const nextIntersection = state.intersection_graph.getIntersection(newNeighbor.nextIntersectionId);
-      Utils.srAnnounce(
-        document.getElementById("announcements-mount"),
-        `<p>${street.label}, heading ${newNeighbor.cardinalDirection}</p>
-        <p>Next intersection: ${nextIntersection.description}, ${Utils.printDistance(newNeighbor.distance)}</p>`
-      );
+    const alignmentAnnouncement = roadUtils.updateAlignment(state.current_heading, state.current_intersection, "around", false);
+      Utils.srAnnounce(announcementsMount, `${alignmentAnnouncement}`);
   });
 
   document.getElementById("btn-menu").addEventListener("click", (e) => {

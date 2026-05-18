@@ -657,6 +657,37 @@ integrateTile(tile) {
   }
 
   /**
+   * Locates the neighbor from the set of neighbors with the largest angle separation based on the given heading
+   * First, the closest neighbor is determined. The neighbor is used to get the current street
+   * If there is 0 neighbors, null is returned
+   * If there is one neighbor, the current neighbor will just be returned
+   * Returns the neighbor with the largest angle separation from the current neighbor
+   * @param {number} heading 
+   * @param {Array<Neighbor>} neighbors 
+   * @returns {Neighbor | null}
+   */
+  getAround(heading, neighbors) {
+    if (neighbors.length === 0 && neighbors.length === 1) return null;
+    const currentNeighbor = this.closestNeighborByAngularDiff(heading, neighbors);
+    const normalize = (angle) => ((angle % 360) + 360) % 360;
+    const angleDiff = (a, b) => {
+      const diff = Math.abs(normalize(a) - normalize(b));
+      return Math.min(diff, 360 - diff);
+    };
+    const currentAngle = currentNeighbor.angle;
+    const currentStreetKey = this.getStreet(currentNeighbor.wayId).key;
+    const neighborWithSameStreets = neighbors.filter(n => this.getStreet(n.wayId).key === currentStreetKey);
+    if (neighborWithSameStreets.length === 0) return null;
+    if (neighborWithSameStreets.length === 1) return neighborWithSameStreets[0];
+    return neighborWithSameStreets.reduce((best, n) => {
+      if (!best) return n;
+      const bestDiff = angleDiff(currentAngle, best.angle);
+      const diff = angleDiff(currentAngle, n.angle);
+      return diff > bestDiff ? n : best;
+    }, null);
+  }
+
+  /**
    * Gets the relative direction given a heading and a set of neighbors 
    * {number} currentHeading -  The heading in degrees 
    * @param {Array<Neighbor>} neighbors 
