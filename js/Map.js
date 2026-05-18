@@ -460,101 +460,148 @@ integrateTile(tile) {
    * @param {string} intersectionId  OSM node ID of the starting intersection
    * @returns {Array<Neighbor>}
    */
-  getNeighbors(intersectionId) {
-    const origin = this.intersections.get(intersectionId);
-    if (!origin) return [];
+getNeighbors(intersectionId) {
+  const origin = this.intersections.get(intersectionId);
+  if (!origin) return [];
 
-    const neighbors = [];
+  const neighbors = [];
 
-    for (const edge of origin.edges.values()) {
-      if (this.unnamedRoadsDisabled && edge.segment.isUnnamed) continue;
+  const pushOrMergeNeighbor = (candidate, referenceAngle) => {
+    const existing = neighbors.find(
+      n =>
+        n.originIntersectionId === candidate.originIntersectionId &&
+        n.nextIntersectionId === candidate.nextIntersectionId
+    );
 
-      // When unnamed roads are enabled, include all direct edges as-is
-      if (!this.unnamedRoadsDisabled) {
-        neighbors.push(new Neighbor(
-            origin.id,
-            edge.to,
-            edge.segment.id,
-            edge.angle,
-            edge.cardinal,
-            edge.distance
-          ));
-        continue;
-      }
-
-      // Walk forward along this street until a meaningful named intersection is found
-      let currentEdge = edge;
-      let currentIntersection = this.getIntersection(edge.to);
-      const visited = new Set();
-
-      while (true) {
-        // Cycle guard: if we've looped back, emit current position and stop
-        if (visited.has(currentIntersection.id)) {
-          neighbors.push(new Neighbor(
-            origin.id,
-            currentIntersection.id,
-            currentEdge.segment.id,
-            currentEdge.angle,
-            currentEdge.cardinal,
-            currentEdge.distance
-          ));
-          break;
-        }
-        visited.add(currentIntersection.id);
-
-        const namedStreets = [...currentIntersection.edges.values()].filter(s => !s.segment.isUnnamed);
-        const streetsWithSameLabel = namedStreets.reduce(
-          (count, s) => (s.segment.key === currentEdge.segment.key ? count + 1 : count),
-          0
-        );
-        const hasCrossStreets = namedStreets.some(
-          s => s.segment.key !== currentEdge.segment.key
-        );
-
-        // Stop if there's a cross-street or the same label forks (3+ segments = junction)
-        if (hasCrossStreets || streetsWithSameLabel >= 3) {
-          neighbors.push(new Neighbor(
-            origin.id,
-            currentIntersection.id,
-            currentEdge.segment.id,
-            currentEdge.angle,
-            currentEdge.cardinal,
-            Utils.calculateDistanceBetweenCordinates(
-              origin.lat, origin.lon,
-              currentIntersection.lat, currentIntersection.lon
-            )
-          ));
-          break;
-        }
-
-        // Advance: find the continuing edge on the same street, excluding backtracking
-        const nextEdge = [...currentIntersection.edges.values()].find(
-          e => e.segment.key === currentEdge.segment.key
-            && e.to !== currentEdge.from
-        );
-        if (!nextEdge) {
-          // Dead end: emit current position
-          neighbors.push(new Neighbor(
-            origin.id,
-            currentIntersection.id,
-            currentEdge.segment.id,
-            currentEdge.angle,
-            currentEdge.cardinal,
-            Utils.calculateDistanceBetweenCordinates(
-              origin.lat, origin.lon,
-              currentIntersection.lat, currentIntersection.lon
-            )
-          ));
-          break;
-        }
-
-        currentEdge = nextEdge;
-        currentIntersection = this.getIntersection(nextEdge.to);
-      }
+    if (!existing) {
+      neighbors.push(candidate);
+      return;
     }
 
-    return neighbors;
+    const existingDiff = Math.abs(Utils.angleDiff(referenceAngle, existing.angle));
+    const candidateDiff = Math.abs(Utils.angleDiff(referenceAngle, candidate.angle));
+
+    if (candidateDiff < existingDiff) {
+      const idx = neighbors.indexOf(existing);
+      neighbors[idx] = candidate;
+    }
+  };
+
+  for (const edge of origin.edges.values()) {
+
+    if (this.unnamedRoadsDisabled && edge.segment.isUnnamed) continue;
+
+    // If unnamed roads are allowed, include direct neighbors
+    if (!this.unnamedRoadsDisabled) {
+      pushOrMergeNeighbor(
+        new Neighbor(
+          origin.id,
+          edge.to,
+          edge.segment.id,
+          edge.angle,
+          edge.cardinal,
+          edge.distance
+        ),
+        edge.angle
+      );
+      continue;
+    }
+
+    let currentEdge = edge;
+    let currentIntersection = this.getIntersection(edge.to);
+    let walkedDistance = edge.distance;
+    const visited = new Set();
+
+    while (true) {
+
+      if (visited.has(currentIntersection.id)) {
+        pushOrMergeNeighbor(
+          new Neighbor(
+            origin.id,
+            currentIntersection.id,
+            currentEdge.segment.id,
+            currentEdge.angle,
+            currentEdge.cardinal,
+            walkedDistance
+          ),
+          edge.angle
+        );
+        break;
+      }
+
+      visited.add(currentIntersection.id);
+
+      const intersectionEdges = [...currentIntersection.edges.values()];
+      const namedEdges = intersectionEdges.filter(e => !e.segment.isUnnamed);
+
+      const sameStreetEdges = namedEdges.filter(
+        e => e.segment.key === currentEdge.segment.key
+      );
+
+      const hasCrossStreet = namedEdges.some(
+        e => e.segment.key !== currentEdge.segment.key
+      );
+
+      if (hasCrossStreet || sameStreetEdges.length >= 3) {
+        pushOrMergeNeighbor(
+          new Neighbor(
+            origin.id,
+            currentIntersection.id,
+            currentEdge.segment.id,
+            currentEdge.angle,
+            currentEdge.cardinal,
+            walkedDistance
+          ),
+          edge.angle
+        );
+        break;
+      }
+
+      const candidates = intersectionEdges.filter(e =>
+        e.segment.key === currentEdge.segment.key &&
+        e.to !== currentEdge.from
+      );
+
+      if (candidates.length === 0) {
+        pushOrMergeNeighbor(
+          new Neighbor(
+            origin.id,
+            currentIntersection.id,
+            currentEdge.segment.id,
+            currentEdge.angle,
+            currentEdge.cardinal,
+            walkedDistance
+          ),
+          edge.angle
+        );
+        break;
+      }
+
+      let nextEdge;
+
+      if (candidates.length === 1) {
+        nextEdge = candidates[0];
+      } else {
+        const currentAngle = currentEdge.angle;
+
+        nextEdge = candidates.reduce((best, e) => {
+          if (!best) return e;
+
+          const bestDiff = Math.abs(Utils.angleDiff(currentAngle, best.angle));
+          const diff = Math.abs(Utils.angleDiff(currentAngle, e.angle));
+
+          return diff < bestDiff ? e : best;
+        }, null);
+      }
+
+      walkedDistance += nextEdge.distance;
+      currentEdge = nextEdge;
+      currentIntersection = this.getIntersection(nextEdge.to);
+    }
   }
+
+  return neighbors;
+}
 
   /**
    * Returns the Intersection for the given OSM node ID.

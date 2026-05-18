@@ -81,7 +81,7 @@ Utils.srAnnounce(announcementsMount, `${alignAnnouncement}`);
 
     document.getElementById("btn-previous").addEventListener("click", () => {
     if (state.location_history.length === 0) {
-      Utils.srAnnounce(announcementsMount
+      Utils.srAnnounce(announcementsMount,
         `<p>There are no previous points. Navigate to an intersection in road mode or explore freely to create previous points.</p>`
       );
       return;
