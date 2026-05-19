@@ -67,17 +67,17 @@ export const initData = async (statusElement, announcementsElement) => {
         const closestIntersection = state.intersection_graph.getNearestIntersection(
           state.lat, state.lon
         );
-        const intersectionAnnouncements = updateIntersection(state.current_heading, closestIntersection.id, false);
       // Step 1: Snap to the nearest named intersection
       if (!closestIntersection) {
         Utils.srAnnounce(statusElement, `Unable to be placed on a road. Returning to free explore mode.`);
         returnToExploreMode();
         return;
       }
-      Utils.srAnnounce(statusElement, `${intersectionAnnouncements.originIntersectionStr}`);
 
       // Step 2: Align heading to the nearest street by angular proximity
       const alignStr = updateAlignment(state.current_heading, closestIntersection.id, "", true);
+        const intersectionAnnouncements = updateIntersection(state.current_heading, closestIntersection.id, false);
+            Utils.srAnnounce(statusElement, `${intersectionAnnouncements.originIntersectionStr}`);
       announcements += `${alignStr}`;
 
       // Step 3: Set state and announce the next intersection along the aligned street
@@ -176,8 +176,16 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
       const currentTileKey = state.current_tile;
       const tile = state.intersection_graph.tiles.get(currentTileKey);
       if (!tile) {
+      Utils.srAnnounce(
+        document.getElementById("announcements-mount"),
+        `<p>Attempting to update intersections for further exploration.</p>
+        <p>You may continue to navigate while intersections load.</p>
+        <p>If the update seemed  to have failed, press the refresh button to try again.</p>`
+      );
+      document.getElementById("nav-refresh-road").disabled = true;
         await state.intersection_graph.loadGraph(state.lat, state.lon);
         updateUi();
+        document.getElementById("nav-refresh-road").disabled = false;
         return;
       }
       const directions = ["north", "east", "south", "west"];
@@ -200,7 +208,15 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
                 break;
       }
       if (distance <= 1000) {
+      Utils.srAnnounce(
+        document.getElementById("announcements-mount"),
+        `<p>Attempting to update intersections for further exploration.</p>
+        <p>You may continue to navigate while intersections load.</p>
+        <p>If the update seemed  to have failed, press the refresh button to try again.</p>`
+      );
+      document.getElementById("nav-refresh-road").disabled = true;
         await state.intersection_graph.loadGraph(state.lat, state.lon);
         updateUi();
       }
+      document.getElementById("nav-refresh-road").disabled = false;
     };

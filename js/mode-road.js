@@ -44,6 +44,8 @@ export const initRoadMode = async () => {
     
     document.getElementById("nav-refresh-road").addEventListener("click", async () => {
     for (const btn of document.getElementsByTagName("button")) btn.disabled = true;
+    Utils.srAnnounce(announcementsMount, `<p>Attempting to to refresh unloaded intersections.</p>
+      <p>If you feel like expected intersections were not added, press the refresh button again when available.</p>`);
     await state.intersection_graph.loadGraph(state.lat, state.lon);
     for (const tile of state.intersection_graph.tiles.values()) {
       if (!tile.isLoaded) {
@@ -54,6 +56,7 @@ export const initRoadMode = async () => {
         await Utils.sleep(1000);
       }
     }
+    Utils.srAnnounce(announcementsMount, `${roadUtils.updateAlignment(state.current_heading, state.current_intersection, "", true)}`);
     for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
     });
 
@@ -145,7 +148,9 @@ const alignAnnouncement = roadUtils.updateAlignment(state.current_heading, curre
 
       // Step 3: Announce the upcoming intersection
       Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
-      await roadUtils.updateTiles();
+      //Wait 5 seconds before updates occur to allow for previous announcements to show up
+      await Utils.sleep(5000);
+      roadUtils.updateTiles();
   });
 
   document.getElementById("btn-turn-right").addEventListener("click", () => {
