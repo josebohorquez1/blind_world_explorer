@@ -166,7 +166,7 @@ export const initRoadMenu = () => {
             "Has Sidewalk": street.details.tags.foot,
             "Sidewalk": street.details.tags.sidewalk,
             "Speed Limit": street.details.tags.maxspeed,
-            "Is Oneway": street.details.oneway,
+            "Is Oneway": street.details.tabs.oneway,
             "Junction Type": street.junctionType,
             "Junction Ref": street.junctionRef,
             "Destination": street.destination,

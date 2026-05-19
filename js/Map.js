@@ -493,7 +493,7 @@ getNeighbors(intersectionId) {
 
     // If unnamed roads are allowed, include direct neighbors
     if (!this.unnamedRoadsDisabled) {
-      pushOrMergeNeighbor(
+      neighbors.push(
         new Neighbor(
           origin.id,
           edge.to,
@@ -501,8 +501,7 @@ getNeighbors(intersectionId) {
           edge.angle,
           edge.cardinal,
           edge.distance
-        ),
-        edge.angle
+        )
       );
       continue;
     }
@@ -725,6 +724,7 @@ getNeighbors(intersectionId) {
     const currentStreetKey = this.getStreet(currentNeighbor.wayId).key;
     const neighborWithSameStreets = neighbors.filter(n => this.getStreet(n.wayId).key === currentStreetKey);
     if (neighborWithSameStreets.length === 0) return null;
+    if (neighborWithSameStreets.length === 1 && this.getStreet(neighborWithSameStreets[0].wayId).id === this.getStreet(currentNeighbor.wayId).id) return null;
     if (neighborWithSameStreets.length === 1) return neighborWithSameStreets[0];
     return neighborWithSameStreets.reduce((best, n) => {
       if (!best) return n;

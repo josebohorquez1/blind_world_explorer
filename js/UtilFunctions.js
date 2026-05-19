@@ -130,7 +130,7 @@ export const getBearingAndDirection = (fromLat, fromLon, toLat, toLon) => {
   const x = Math.cos(φ1) * Math.sin(φ2) -
             Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
   const θ = toDeg(Math.atan2(y, x));
-  const normalized = Math.round((θ + 360) % 360);
+  const normalized = Math.round((θ + 360) % 360) % 360;
   return { cardinal: getCardinalDirection(normalized), angle: normalized };
 };
 

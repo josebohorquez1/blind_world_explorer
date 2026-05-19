@@ -44,6 +44,7 @@ export class Street {
     if (this.ref) return this.ref;
     if (this.highwayType === "service") return "Service Road";
     if (this.highwayType === "residential") return "Residential Street";
+    if (this.highwayType === "construction") return "Construction";
     if (this.junctionType === "roundabout") return "Roundabout";
 
     if (
@@ -94,15 +95,15 @@ export class Street {
    * @returns {boolean}
    */
 get isUnnamed() {
-
   const disallowedHighwayTypes = [
     "primary_link",
     "secondary_link",
     "tertiary_link",
     "trunk_link",
+    "construction"
   ];
 
-  // Motorways are never unnamed
+  // Motorways and motorway_links are never unnamed
   if (this.highwayType === "motorway" || this.highwayType === "motorway_link") {
     return false;
   }
