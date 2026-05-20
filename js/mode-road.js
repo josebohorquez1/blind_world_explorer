@@ -149,8 +149,8 @@ const alignAnnouncement = roadUtils.updateAlignment(state.current_heading, curre
       // Step 3: Announce the upcoming intersection
       Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
       //Wait 5 seconds before updates occur to allow for previous announcements to show up
-      await Utils.sleep(5000);
-      roadUtils.updateTiles();
+      await Utils.sleep(2000);
+      await roadUtils.updateTiles();
   });
 
   document.getElementById("btn-turn-right").addEventListener("click", () => {
