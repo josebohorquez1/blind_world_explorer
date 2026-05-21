@@ -6,6 +6,11 @@ import { state } from "./state.js";
 import * as Utils from "./UtilFunctions.js";
 import { initExploreMode } from "./mode-explore.js";
 
+
+//Constants
+const statusMount = document.getElementById("status-text");
+const announcementsMount = document.getElementById("announcements-mount");
+
 //Fail safe function: return to explore mode.
 export const returnToExploreMode = () => {
   document.getElementById("announcements-mount").innerHTML = "";
@@ -42,11 +47,11 @@ export const relativeDirectionToString = (heading, neighbors) => {
   return directionsString;
 };
 
-export const initData = async (statusElement, announcementsElement) => {
+export const initData = async () => {
   if (state.intersection_graph.isLoaded) return;
-    Utils.srAnnounce(statusElement, `Loading intersections.`);
+    Utils.srAnnounce(statusMount, `Loading intersections.`);
     Utils.srAnnounce(
-      announcementsElement,
+      announcementsMount,
       `<div class="d-flex align-items-center gap-2" role="status" aria-live="polite">
   <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
   <span>Loading intersections...</span>
@@ -56,10 +61,7 @@ export const initData = async (statusElement, announcementsElement) => {
 
         const fetchResponse = await state.intersection_graph.loadGraph(state.lat, state.lon);
         if (!fetchResponse) {
-          Utils.srAnnounce(
-              status,
-              `Unable to load intersection data. Returning to explorer mode. Click the "Switch to road mode" button to try again.`
-          );
+          Utils.srAnnounce(statusMount, `Unable to load intersection data. Returning to explorer mode. Click the "Switch to road mode" button to try again.`);
           returnToExploreMode();
           return;
         }
@@ -69,7 +71,7 @@ export const initData = async (statusElement, announcementsElement) => {
         );
       // Step 1: Snap to the nearest named intersection
       if (!closestIntersection) {
-        Utils.srAnnounce(statusElement, `Unable to be placed on a road. Returning to free explore mode.`);
+        Utils.srAnnounce(statusMount, `Unable to be placed on a road. Returning to free explore mode.`);
         returnToExploreMode();
         return;
       }
@@ -77,7 +79,7 @@ export const initData = async (statusElement, announcementsElement) => {
       // Step 2: Align heading to the nearest street by angular proximity
       const alignStr = updateAlignment(state.current_heading, closestIntersection.id, "", true);
         const intersectionAnnouncements = updateIntersection(state.current_heading, closestIntersection.id, false);
-            Utils.srAnnounce(statusElement, `${intersectionAnnouncements.originIntersectionStr}`);
+            Utils.srAnnounce(statusMount, `${intersectionAnnouncements.originIntersectionStr}`);
       announcements += `${alignStr}`;
 
       // Step 3: Set state and announce the next intersection along the aligned street
@@ -88,7 +90,7 @@ export const initData = async (statusElement, announcementsElement) => {
       state.current_tile = `${tileCoords.x}_${tileCoords.y}`;
     const url = `?mode=road&coords=${state.lat},${state.lon}`;
     history.pushState({}, "", url);
-      Utils.srAnnounce(announcementsElement, announcements);
+      Utils.srAnnounce(announcementsMount, announcements);
 };
 
 /**
@@ -220,3 +222,151 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
       }
       document.getElementById("nav-refresh-road").disabled = false;
     };
+
+  export const switchToExploreMode = () => {
+        const url = location.origin + location.pathname;
+        history.replaceState({}, "", url);
+          state.current_heading = 0;
+          state.current_moving_distance = 90;
+          state.current_neighbor = null;
+          state.current_rotation_increment = 45;
+          state.current_tile = "";
+          state.intersection_graph.clear();
+          state.lat = 0;
+          state.location_history= [];
+          state.lon = 0;
+          switchApplicationView(
+          "pages/start.html",
+          document.getElementById("app-mount"),
+          initStartScreen
+        );
+      };
+
+      export const refreshRoadData = async () => {
+          for (const btn of document.getElementsByTagName("button")) btn.disabled = true;
+          Utils.srAnnounce(announcementsMount, `<p>Attempting to to refresh unloaded intersections.</p>
+            <p>If you feel like expected intersections were not added, press the refresh button again when available.</p>`);
+          await state.intersection_graph.loadGraph(state.lat, state.lon);
+          for (const tile of state.intersection_graph.tiles.values()) {
+            if (!tile.isLoaded) {
+              await state.intersection_graph.reloadTile(tile);
+              if (!tile.isLoaded) continue;
+              state.intersection_graph.integrateTile(tile);
+              tile.clear();
+              await Utils.sleep(1000);
+            }
+          }
+          Utils.srAnnounce(announcementsMount, `${updateAlignment(state.current_heading, state.current_intersection, "", true)}`);
+          for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
+          };
+
+          export const toggleUnnamedRoads = (event) => {
+                const getNeighbors = () => {
+          const alignAnnouncement = updateAlignment(state.current_heading,state.current_intersection, "", true);
+          Utils.srAnnounce(announcementsMount, `${alignAnnouncement}`);
+                };
+                state.intersection_graph.unnamedRoadsDisabled = !state.intersection_graph.unnamedRoadsDisabled;
+                if (!state.intersection_graph.unnamedRoadsDisabled) {
+                  event.currentTarget.setAttribute("aria-label", "Disable unnamed roads");
+                  event.currentTarget.setAttribute("data-bs-title", "Disable unnamed roads");
+              const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+              const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
+              getNeighbors();
+                }
+                else {
+                  event.currentTarget.setAttribute("aria-label", "Enable unnamed roads");
+                  event.currentTarget.setAttribute("data-bs-title", "Enable unnamed roads");
+              const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+              const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
+              getNeighbors();
+                }
+              };
+
+              export const movePrevious = () => {
+                  if (state.location_history.length === 0) {
+                    Utils.srAnnounce(announcementsMount,
+                      `<p>There are no previous points. Navigate to an intersection in road mode or explore freely to create previous points.</p>`
+                    );
+                    return;
+                  }
+                  let announcements = "";
+              
+                  const lastPoint = state.location_history[state.location_history.length - 1];
+                  const currentLat = state.lat;
+                  const currentLon = state.lon;
+                  const { lat: prevLat, lon: prevLon, intersection: prevIntersection } = lastPoint;
+                  let currentIntersection = null;
+                    if (!prevIntersection) {
+                      // History entry came from explorer mode — snap to the nearest intersection instead
+                      announcements += `<p>The previous point does not contain intersection data. Placing you at the nearest intersection.</p>`;
+                      currentIntersection = state.intersection_graph.getNearestIntersection(prevLat, prevLon);
+                    }
+              else {
+                    // Restore to the previously visited named intersection
+                    currentIntersection = state.intersection_graph.getIntersection(prevIntersection);
+                    announcements += `<p>Returning to previously visited intersection.</p>`;
+              }
+              
+              const alignAnnouncement = updateAlignment(state.current_heading, currentIntersection.id, "", true);
+                    Utils.srAnnounce(statusMount, `Current intersection: ${currentIntersection.description}`);
+                    announcements += `${alignAnnouncement}`;
+              
+                    state.lat = prevLat;
+                    state.lon = prevLon;
+                    state.current_intersection = prevIntersection;
+                    state.location_history.pop();
+                    Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
+                };
+
+                export const turnLeft = () => {
+      // Select the neighbor reachable by the smallest counter-clockwise turn
+      const alignAnnouncement = updateAlignment(state.current_heading, state.current_intersection, "left", false);
+      Utils.srAnnounce(announcementsMount, `<p>${alignAnnouncement}</p>`);
+  };
+
+  export const moveForward = async () => {
+      let announcements = "";
+
+      // Step 1: Advance to the previously announced next intersection
+      const oldCurrentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
+      const newIntersectionAnnouncements = updateIntersection(state.current_heading, state.current_intersection, true);
+      const alignAnnouncement = updateAlignment(state.current_heading, state.current_intersection, "", true);
+      const newCurrentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
+
+      // Step 2: Calculate distance traveled and announce arrival
+      const distance = Utils.calculateDistanceBetweenCordinates(
+        oldCurrentIntersection.lat, oldCurrentIntersection.lon,
+        newCurrentIntersection.lat, newCurrentIntersection.lon
+      );
+      const direction = Utils.getBearingAndDirection(
+        oldCurrentIntersection.lat, oldCurrentIntersection.lon,
+        newCurrentIntersection.lat, newCurrentIntersection.lon
+      ).cardinal;
+      Utils.srAnnounce(statusMount, `Current intersection: ${newCurrentIntersection.description}.`);
+      announcements += `<p>Moved ${Utils.printDistance(distance)} ${direction}</p>
+      ${alignAnnouncement}`;
+
+      // Step 3: Announce the upcoming intersection
+      Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
+      //Wait 5 seconds before updates occur to allow for previous announcements to show up
+      await Utils.sleep(2000);
+      await updateTiles();
+  };
+
+  export const turnRight = () => {
+      // Select the neighbor reachable by the smallest clockwise turn
+      const alignAnnouncement = updateAlignment(state.current_heading, state.current_intersection, "right", false);
+      Utils.srAnnounce(announcementsMount, `${alignAnnouncement}`);
+  };
+
+  export const turnAround = () => {
+    const alignmentAnnouncement = updateAlignment(state.current_heading, state.current_intersection, "around", false);
+      Utils.srAnnounce(announcementsMount, `${alignmentAnnouncement}`);
+  };
+
+  export const toggleMenu = (event) => {
+    const menu = document.getElementById("menu");
+    const isHidden = (menu.hidden === true);
+    event.currentTarget.setAttribute("aria-expanded", String(isHidden));
+    menu.hidden = !isHidden;
+  };
