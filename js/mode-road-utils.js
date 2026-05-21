@@ -6,10 +6,10 @@ import { state } from "./state.js";
 import * as Utils from "./UtilFunctions.js";
 import { initExploreMode } from "./mode-explore.js";
 
-
-//Constants
+//Variables
 const statusMount = document.getElementById("status-text");
 const announcementsMount = document.getElementById("announcements-mount");
+let isUpdating = false;
 
 //Fail safe function: return to explore mode.
 export const returnToExploreMode = () => {
@@ -168,6 +168,8 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
 };
 
     export const updateTiles = async () => {
+      if (isUpdating) return;
+      isUpdating = true;
       const updateUi = () => {
       const intersectionAnnouncements = updateIntersection(state.current_heading, state.current_intersection, false);
       const alignAnnouncements = updateAlignment(state.current_heading, state.current_intersection, "", true);
@@ -188,6 +190,7 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
         await state.intersection_graph.loadGraph(state.lat, state.lon);
         updateUi();
         document.getElementById("nav-refresh-road").disabled = false;
+        isUpdating = false;
         return;
       }
       const directions = ["north", "east", "south", "west"];
@@ -221,6 +224,7 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
         updateUi();
       }
       document.getElementById("nav-refresh-road").disabled = false;
+      isUpdating = false;
     };
 
   export const switchToExploreMode = () => {
