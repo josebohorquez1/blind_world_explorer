@@ -5,6 +5,7 @@ import { initStartScreen } from "./Start.js";
 import { initRoadMenu } from "./mode-road-menu.js";
 import { Neighbor } from "./map-neighbor.js";
 import * as roadUtils from "./mode-road-utils.js";
+import { initkeyboardEvents } from "./mode-road-keyboard.js";
 
 export const initRoadMode = async () => {
     lucide.createIcons();
@@ -16,6 +17,7 @@ export const initRoadMode = async () => {
     for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
     document.querySelector("#turn-buttons button").focus();
     initRoadMenu();
+    initkeyboardEvents();
 
     document.getElementById("nav-explore-mode").addEventListener("click", () => {
       roadUtils.returnToExploreMode();

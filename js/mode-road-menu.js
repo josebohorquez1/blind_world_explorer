@@ -283,7 +283,7 @@ document.getElementById("menu-keyboard-help").addEventListener("click", () => {
     // Help
     htmlString += "<h3 class='text-center fw-semibold mt-4 mb-3'>Help</h3>";
     const help = {
-        "/": "Open keyboard help"
+        "Alt + /": "Open keyboard help"
     };
     htmlString += makeTable(help);
 

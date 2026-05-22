@@ -9,6 +9,7 @@
       aria-label="Explore a new location"
       data-bs-toggle="tooltip"
       data-bs-title="Explore new location"
+      accesskey="n"
     >
       <i role="presentation" data-lucide="map-pin"></i>
     </button>
@@ -19,6 +20,7 @@
       aria-label="Switch to explore mode"
       data-bs-toggle="tooltip"
       data-bs-title="Switch to explore mode"
+      accesskey="s"
     >
       <i role="presentation" data-lucide="compass"></i>
     </button>
@@ -29,6 +31,7 @@
       aria-label="Refresh road data"
       data-bs-toggle="tooltip"
       data-bs-title="Refresh road data"
+      accesskey="r"
     >
       <i role="presentation" data-lucide="refresh-cw"></i>
     </button>
@@ -39,6 +42,7 @@
       aria-label="Enable unnamed roads"
       data-bs-toggle="tooltip"
       data-bs-title="Enable unnamed roads"
+      accesskey="u"
     >
       <i role="presentation" data-lucide="git-branch"></i>
     </button>
@@ -52,6 +56,9 @@
     </p>
     <p class="mb-1">
       Press <strong>Move forward</strong> to move to the next intersection based on the currently selected street.
+    </p>
+    <p class="mb-1">
+      If using a screen reader, to use keyboard commands, make sure that virtual cursor is off to allow keyboard commands to be passed to the application.
     </p>
   </section>
 
@@ -136,6 +143,7 @@
       aria-label="More Options"
       data-bs-toggle="tooltip"
       data-bs-title="More options"
+      accesskey="o"
     >
       <i role="presentation" data-lucide="more-horizontal"></i>
     </button>
@@ -152,12 +160,12 @@
     hidden
 >
 
-    <button id="menu-address" role="menuitem" class="list-group-item list-group-item-action">
+    <button id="menu-address" role="menuitem" class="list-group-item list-group-item-action" accesskey="a">
       <i role="presentation" data-lucide="map-pin"></i>
       Get current address
     </button>
 
-    <button id="menu-street-details" role="menuitem" class="list-group-item list-group-item-action">
+    <button id="menu-street-details" role="menuitem" class="list-group-item list-group-item-action" accesskey="d">
       <i role="presentation" data-lucide="info"></i>
       Get Street details
     </button>
@@ -172,12 +180,12 @@
       Open in Apple Maps
     </button>
 
-    <button id="menu-copy-coords" role="menuitem" class="list-group-item list-group-item-action">
+    <button id="menu-copy-coords" role="menuitem" class="list-group-item list-group-item-action" accesskey="c">
       <i role="presentation" data-lucide="copy"></i>
       Copy coordinates
     </button>
 
-    <button id="menu-keyboard-help" role="menuitem" class="list-group-item list-group-item-action">
+    <button id="menu-keyboard-help" role="menuitem" class="list-group-item list-group-item-action" accesskey="/">
       <i role="presentation" data-lucide="keyboard"></i>
       Keyboard help
     </button>

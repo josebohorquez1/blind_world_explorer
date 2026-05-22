@@ -374,3 +374,18 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
     event.currentTarget.setAttribute("aria-expanded", String(isHidden));
     menu.hidden = !isHidden;
   };
+
+  export const announceCurrentAddress = async () => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${state.lat}&lon=${state.lon}&format=json`);
+      if (!res.ok) {
+        Utils.srAnnounce(announcementsMount, `<p>Unable to display current address.</p>`);
+        return;
+      }
+      const data = await res.json();
+      const address = data.display_name;
+      Utils.srAnnounce(announcementsMount, `<p>${address}</p>`);
+    } catch (error) {
+      console.log(error);
+    }
+  };
