@@ -247,7 +247,7 @@ document.getElementById("menu-keyboard-help").addEventListener("click", () => {
     // Navigation
     htmlString += "<h3 class='text-center fw-semibold mt-4 mb-3'>Navigation</h3>";
     const navigation = {
-        "Space": "Go forward",
+        "i": "Go forward",
         "J": "Turn left",
         "K": "Turn around",
         "L": "Turn right",
@@ -276,7 +276,8 @@ document.getElementById("menu-keyboard-help").addEventListener("click", () => {
         "Alt + N": "Explore new location",
         "Alt + S": "Switch to explore mode",
         "Alt + R": "Refresh road data",
-        "Alt + U": "Enable or disable unnamed roads"
+        "Alt + U": "Enable or disable unnamed roads",
+        "Alt + m": "Open more options menu"
     };
     htmlString += makeTable(system);
 

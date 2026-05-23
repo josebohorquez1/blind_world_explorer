@@ -5,6 +5,7 @@ import { Neighbor } from "./map-neighbor.js";
 import { state } from "./state.js";
 import * as Utils from "./UtilFunctions.js";
 import { initExploreMode } from "./mode-explore.js";
+import { keyboardEvents } from "./mode-road-keyboard.js";
 
 //Variables
 const statusMount = document.getElementById("status-text");
@@ -13,6 +14,7 @@ let isUpdating = false;
 
 //Fail safe function: return to explore mode.
 export const returnToExploreMode = () => {
+  document.removeEventListener("keydown", keyboardEvents);
   document.getElementById("announcements-mount").innerHTML = "";
     switchApplicationView(
         "pages/mode-explore.html",
@@ -228,10 +230,11 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
     };
 
   export const switchToExploreMode = () => {
+    document.removeEventListener("keydown", keyboardEvents);
         const url = location.origin + location.pathname;
         history.replaceState({}, "", url);
           state.current_heading = 0;
-          state.current_moving_distance = 90;
+          state.current_moving_distance = 91.44;
           state.current_neighbor = null;
           state.current_rotation_increment = 45;
           state.current_tile = "";

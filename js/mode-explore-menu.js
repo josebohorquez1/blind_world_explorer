@@ -219,11 +219,13 @@ document.getElementById("menu-keyboard-help").addEventListener("click", () => {
     // Navigation
     htmlString += "<h3 class='text-center fw-semibold mt-4 mb-3'>Navigation</h3>";
     const navigation = {
-        "Space": "Go forward",
+        "i": "Go forward",
         "J": "Turn left",
         "K": "Turn around",
         "L": "Turn right",
-        "B": "Go to previous position"
+        "B": "Go to previous position",
+        "+": "Increase distance",
+        "-": "Decrease distance"
     };
     htmlString += makeTable(navigation);
 
@@ -243,14 +245,15 @@ document.getElementById("menu-keyboard-help").addEventListener("click", () => {
         "Alt + C": "Copy coordinates",
         "Alt + N": "Explore new location",
         "Alt + S": "Switch to road mode",
-"Alt + O": "Open explorer mode settings"
+"Alt + O": "Open explorer mode settings",
+"Alt + m": "Open options menu"
     };
     htmlString += makeTable(system);
 
     // Help
     htmlString += "<h3 class='text-center fw-semibold mt-4 mb-3'>Help</h3>";
     const help = {
-        "/": "Open keyboard help"
+        "Alt + /": "Open keyboard help"
     };
     htmlString += makeTable(help);
 

@@ -5,6 +5,7 @@ import { initStartScreen } from "./Start.js";
 import { initExploreModeSettings } from "./mode-explore-settings.js";
 import { initRoadMode } from "./mode-road.js";
 import { initExplorerMenu } from "./mode-explore-menu.js";
+import * as ExploreKeyboard from "./mode-explore-keyboard.js";
 
 //Constants
 const statusMount = document.getElementById("status-text");
@@ -35,6 +36,7 @@ export const reportCurrentLocation= async (lat, lon) => {
 };
 
 export const exploreNewLocation = () => {
+    document.removeEventListener("keydown", ExploreKeyboard.keyboardEvents);
         const url = location.origin + location.pathname;
         history.replaceState({}, "", url);
         state.current_heading = 0;
@@ -54,6 +56,7 @@ export const exploreNewLocation = () => {
     };
 
 export const switchToRoadMode = () => {
+    document.removeEventListener("keydown", ExploreKeyboard.keyboardEvents);
         switchApplicationView(
             "pages/mode-road.html",
             document.getElementById("app-mount"),
@@ -130,13 +133,13 @@ export const movePrevious = async () => {
             Utils.srAnnounce(announcementsMount, `<p>Heading ${state.current_heading} degrees ${Utils.getCardinalDirection(state.current_heading)}.</p>`);
         };
 
-export const zoomIn = () => {
+export const decreaseDistance = () => {
         // Halve movement distance, floor at 1 meter
         state.current_moving_distance = Math.max(1, state.current_moving_distance / 2);
         Utils.srAnnounce(announcementsMount,`<p>Zoomed in to ${Utils.printDistance(state.current_moving_distance)}</p>`);
     };
 
-export const zoomOut = () => {
+export const increaseDistance = () => {
         // Double movement distance, cap at ~1000 miles (1,609,000 meters)
         state.current_moving_distance = Math.min(state.current_moving_distance * 2, 1609000);
         Utils.srAnnounce(announcementsMount, `<p>Zoomed out to ${Utils.printDistance(state.current_moving_distance)}</p>`);

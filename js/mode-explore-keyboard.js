@@ -1,4 +1,4 @@
-import * as RoadUtils from "./mode-road-utils.js";
+import * as ExploreUtils from "./mode-explore-utils.js";
 import * as Utils from "./UtilFunctions.js";
 import { state } from "./state.js";
 
@@ -23,51 +23,37 @@ if (
 switch (keyPressed) {
         //Navigation
         case "i": {
-            RoadUtils.moveForward();
+            ExploreUtils.moveForward();
             break;
         }
             case "j":
-                RoadUtils.turnLeft();
+                ExploreUtils.turnLeft();
                 break;
                 case "k":
-                    RoadUtils.turnAround();
+                    ExploreUtils.turnAround();
                     break;
                     case "l":
-                        RoadUtils.turnRight();
+                        ExploreUtils.turnRight();
                         break;
                         case "b":
-                            RoadUtils.movePrevious();
+                            ExploreUtils.movePrevious();
                             break;
+                            case "+":
+                                ExploreUtils.increaseDistance();
+                                break;
+                                case "-":
+                                    ExploreUtils.decreaseDistance();
+                                    break;
                             //Information
                             case "a":
-                                await RoadUtils.announceCurrentAddress();
+                                await ExploreUtils.reportCurrentLocation();
                                 break;
-                                case "c": {
-                                    const currentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
-                                    const currentIntersectionStr = currentIntersection ? currentIntersection.description : "Unable to announce current intersection.";
-                                    Utils.srAnnounce(statusMount, currentIntersectionStr);
-                                    break;
-                                }
                                 case "h": {
                                     const bearing = state.current_heading;
                                     const direction = Utils.getCardinalDirection(state.current_heading);
                                     const headingStr = `<p>Heading ${bearing} degrees, ${direction}</p>`;
                                     Utils.srAnnounce(announcementsMount, headingStr);
                                     break;
-                                }
-                                case "s": {
-                                    const alignmentAnnouncement = RoadUtils.updateAlignment(state.current_heading, state.current_intersection, "", false);
-                                    Utils.srAnnounce(announcementsMount, alignmentAnnouncement);
-                                    break;
-                                }
-                                case "x": {
-                                    const intersection = state.intersection_graph.getIntersection(state.current_intersection);
-                                    const description = intersection.description;
-                                    const alignAnnouncement = RoadUtils.updateAlignment(state.current_heading, state.current_intersection, "", true);
-                                    const announcement = `<p>${description}</p>
-                                        ${alignAnnouncement}`;
-                                        Utils.srAnnounce(announcementsMount, announcement);
-                                        break;
                                 }
                                 case "r": {
                                     const lastStr = announcementsMount.innerHTML;

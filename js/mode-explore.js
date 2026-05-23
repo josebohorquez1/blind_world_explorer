@@ -2,6 +2,7 @@ import * as ExploreUtils from "./mode-explore-utils.js";
 import * as Utils from "./UtilFunctions.js";
 import { state } from "./state.js";
 import { initExplorerMenu } from "./mode-explore-menu.js";
+import { initkeyboardEvents } from "./mode-explore-keyboard.js";
 
 export const initExploreMode = async () => {
     const statusMount = document.getElementById("status-text");
@@ -17,6 +18,7 @@ export const initExploreMode = async () => {
     Utils.srAnnounce(announcementsMount, `<p>Heading ${state.current_heading} degrees ${Utils.getCardinalDirection(state.current_heading)}</p>`);
     history.pushState({}, "", url);
     initExplorerMenu();
+    initkeyboardEvents();
 
     document.getElementById("nav-new-location").addEventListener("click", ExploreUtils.exploreNewLocation);
 
@@ -34,9 +36,9 @@ export const initExploreMode = async () => {
 
     document.getElementById("btn-turn-around").addEventListener("click", ExploreUtils.turnAround);
 
-    document.getElementById("zoom-in").addEventListener("click", ExploreUtils.zoomIn);
+    document.getElementById("zoom-in").addEventListener("click", ExploreUtils.decreaseDistance);
 
-    document.getElementById("zoom-out").addEventListener("click", ExploreUtils.zoomOut);
+    document.getElementById("zoom-out").addEventListener("click", ExploreUtils.increaseDistance);
 
   document.getElementById("btn-menu").addEventListener("click", ExploreUtils.toggleMenu);
 };
