@@ -35,7 +35,7 @@ export const state = {
     lat: 0,
     lon: 0,
     current_heading: 0,
-    current_moving_distance: 90,
+    current_moving_distance: 91.44,
     current_rotation_increment: 45,
     location_history: []
 };
