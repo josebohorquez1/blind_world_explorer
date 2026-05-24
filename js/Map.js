@@ -508,22 +508,28 @@ getNeighbors(intersectionId) {
 
     let currentEdge = edge;
     let currentIntersection = this.getIntersection(edge.to);
-    let walkedDistance = edge.distance;
     const visited = new Set();
 
     while (true) {
-
+      const angleAndDirection = Utils.getBearingAndDirection(
+        origin.lat, origin.lon,
+        currentIntersection.lat, currentIntersection.lon
+      );
+      const distance = Utils.calculateDistanceBetweenCordinates(
+        origin.lat, origin.lon,
+        currentIntersection.lat, currentIntersection.lon
+      );
       if (visited.has(currentIntersection.id)) {
         pushOrMergeNeighbor(
           new Neighbor(
             origin.id,
             currentIntersection.id,
             currentEdge.segment.id,
-            currentEdge.angle,
-            currentEdge.cardinal,
-            walkedDistance
+            angleAndDirection.angle,
+            angleAndDirection.cardinal,
+            distance
           ),
-          edge.angle
+          angleAndDirection.angle
         );
         break;
       }
@@ -547,11 +553,11 @@ getNeighbors(intersectionId) {
             origin.id,
             currentIntersection.id,
             currentEdge.segment.id,
-            currentEdge.angle,
-            currentEdge.cardinal,
-            walkedDistance
+            angleAndDirection.angle,
+            angleAndDirection.cardinal,
+            distance
           ),
-          edge.angle
+          angleAndDirection.angle
         );
         break;
       }
@@ -567,11 +573,11 @@ getNeighbors(intersectionId) {
             origin.id,
             currentIntersection.id,
             currentEdge.segment.id,
-            currentEdge.angle,
-            currentEdge.cardinal,
-            walkedDistance
+            angleAndDirection.angle,
+            angleAndDirection.cardinal,
+            distance
           ),
-          edge.angle
+          angleAndDirection.angle
         );
         break;
       }
@@ -593,7 +599,6 @@ getNeighbors(intersectionId) {
         }, null);
       }
 
-      walkedDistance += nextEdge.distance;
       currentEdge = nextEdge;
       currentIntersection = this.getIntersection(nextEdge.to);
     }
