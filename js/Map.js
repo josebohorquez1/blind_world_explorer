@@ -159,34 +159,54 @@ latLonToTileXY(lat, lon) {
    * Returns the new loaded tile or an empty tile on failure
    * @returns {Tile}
    */
-  async loadTile(x, y) {
-    const box = this._getTileBoundingBox(x, y);
-const query = `
+async loadTile(x, y) {
+  const box = this._getTileBoundingBox(x, y);
+
+  // If we've already created this tile, return it.
+  const key = `${x}_${y}`;
+  if (this.tiles.has(key)) {
+    return this.tiles.get(key);
+  }
+
+  // Create the tile immediately so failed downloads can be retried later.
+  const tile = new Tile(x, y, box);
+  this.tiles.set(tile.key, tile);
+
+  const query = `
 [out:json][timeout:60];
 way["highway"]["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
 (${box.south},${box.west},${box.north},${box.east});
 out body;
 node(w);
 out body;
-    `.trim();
+  `.trim();
+
+  try {
     const data = await this._fetchOverpass(query);
-    const tile = new Tile(x, y, box);
+
     if (data.elements) {
-    for (const el of data.elements) {
-      if (el.type === "node") {
-        tile.addNode(
-        el.id,
-        {lat: el.lat, lon: el.lon}
-      );
-      continue;
+      for (const el of data.elements) {
+        if (el.type === "node") {
+          tile.addNode(el.id, {
+            lat: el.lat,
+            lon: el.lon
+          });
+        } else if (el.type === "way") {
+          tile.addWay(el.id, el);
+        }
       }
-      if (el.type === "way") tile.addWay(el.id, el);
     }
+
     tile.isLoaded = true;
-    }
-    this.tiles.set(tile.key, tile);
-    return tile;
+  } catch (error) {
+    console.error(`Failed to load tile ${tile.key}:`, error);
+
+    // Leave tile.isLoaded = false so refreshRoadData()
+    // knows this tile still needs to be retried.
   }
+
+  return tile;
+}
 
   /**
    * Reloads a tile
@@ -235,24 +255,46 @@ out body;
     /** @type {Tile[]}  A list of new tiles */
     const tiles = [];
     const center = this.latLonToTileXY(lat, lon);
-    for (let dx = -radius; dx < radius; dx++) {
-      for (let dy = -radius; dy < radius; ++ dy) {
+const MAX_RETRIES = 5;
+
+for (let dx = -radius; dx <= radius; dx++) {
+    for (let dy = -radius; dy <= radius; dy++) {
+
         const x = center.x + dx;
         const y = center.y + dy;
         const key = `${x}_${y}`;
-        try {
-          if (!this.tiles.has(key)) {
-            const tile = await this.loadTile(x, y);
-            if (tile) tiles.push(tile);
-            await Utils.sleep(1000);
-          }
+
+        if (this.tiles.has(key)) continue;
+
+        let tile = null;
+
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                tile = await this.loadTile(x, y);
+                break;
+            } catch (error) {
+                console.warn(
+                    `Tile ${key} failed (attempt ${attempt}/${MAX_RETRIES})`,
+                    error
+                );
+
+                if (attempt < MAX_RETRIES) {
+                    await Utils.sleep(5000 * attempt);
+                }
+            }
         }
-        catch (error) {
-          console.log(error);
-          return [];
+
+        if (!tile) {
+            console.warn(`Skipping tile ${key} after ${MAX_RETRIES} failed attempts.`);
+            continue;
         }
-      }
+
+        tiles.push(tile);
+
+        // Optional: avoid hitting Overpass too quickly
+        await Utils.sleep(5000);
     }
+}
     return tiles;
   }
 

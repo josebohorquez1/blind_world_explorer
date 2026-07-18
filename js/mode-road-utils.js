@@ -6,6 +6,7 @@ import { state } from "./state.js";
 import * as Utils from "./UtilFunctions.js";
 import { initExploreMode } from "./mode-explore.js";
 import { keyboardEvents } from "./mode-road-keyboard.js";
+import { initStartScreen } from "./Start.js";
 
 //Variables
 const statusMount = document.getElementById("status-text");
@@ -253,16 +254,53 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
           for (const btn of document.getElementsByTagName("button")) btn.disabled = true;
           Utils.srAnnounce(announcementsMount, `<p>Attempting to to refresh unloaded intersections.</p>
             <p>If you feel like expected intersections were not added, press the refresh button again when available.</p>`);
-          await state.intersection_graph.loadGraph(state.lat, state.lon);
-          for (const tile of state.intersection_graph.tiles.values()) {
-            if (!tile.isLoaded) {
-              await state.intersection_graph.reloadTile(tile);
-              if (!tile.isLoaded) continue;
-              state.intersection_graph.integrateTile(tile);
-              tile.clear();
-              await Utils.sleep(1000);
+    const MAX_RETRIES = 5;
+
+    for (const tile of state.intersection_graph.tiles.values()) {
+
+        // Already loaded successfully.
+        if (tile.isLoaded) {
+            continue;
+        }
+
+        console.log(`Retrying tile ${tile.key}...`);
+
+        let success = false;
+
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                await state.intersection_graph.reloadTile(tile);
+
+                if (tile.isLoaded) {
+                    state.intersection_graph.integrateTile(tile);
+                    tile.clear();
+
+                    console.log(
+                        `Loaded tile ${tile.key} on attempt ${attempt}.`
+                    );
+
+                    success = true;
+                    break;
+                }
             }
-          }
+            catch (error) {
+                console.error(
+                    `Tile ${tile.key} failed (attempt ${attempt}/${MAX_RETRIES}).`,
+                    error
+                );
+            }
+
+            if (attempt < MAX_RETRIES) {
+                await Utils.sleep(5000 * attempt);
+            }
+        }
+
+        if (!success) {
+            console.warn(
+                `Skipping tile ${tile.key} after ${MAX_RETRIES} failed attempts.`
+            );
+        }
+    }
           Utils.srAnnounce(announcementsMount, `${updateAlignment(state.current_heading, state.current_intersection, "", true)}`);
           for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
           };
