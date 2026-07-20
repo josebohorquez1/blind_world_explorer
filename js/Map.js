@@ -203,8 +203,7 @@ out body;
 
 /**
  * Checks that all tiles are created based on the given coordinates and the given radius in grid units.
- * If radius = 1, ensures a 3x3 grid of tiles.
- * If radius = 2, ensures a 5x5 grid of tiles.
+ * If radius = 1, ensures a 2x2 grid of tiles.
  *
  * @param {number} lat - Center latitude.
  * @param {number} lon - Center longitude.
@@ -217,8 +216,8 @@ ensureTilesAround(lat, lon, radius = 1) {
 
     const center = this.latLonToTileXY(lat, lon);
 
-    for (let dx = -radius; dx <= radius; dx++) {
-        for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx < radius; dx++) {
+        for (let dy = -radius; dy < radius; dy++) {
 
             const x = center.x + dx;
             const y = center.y + dy;
