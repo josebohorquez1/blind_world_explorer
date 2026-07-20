@@ -149,74 +149,19 @@ latLonToTileXY(lat, lon) {
   return { x, y };
 }
 
-  /**
-   * Fetches nodes and ways for a tile given x and y coordinates
-   * A new tile is created, and the nodes and ways are added to the tile.
-   * The tile is then stored into the tile  map.
-   * Returns true on success or false on failure.
-   * @param {number} x - The x-coordinate of the tile
-   * @param {number} y - The y-coordinate of the tile
-   * Returns the new loaded tile or an empty tile on failure
-   * @returns {Tile}
-   */
-async loadTile(x, y) {
-  const box = this._getTileBoundingBox(x, y);
-
-  // If we've already created this tile, return it.
-  const key = `${x}_${y}`;
-  if (this.tiles.has(key)) {
-    return this.tiles.get(key);
-  }
-
-  // Create the tile immediately so failed downloads can be retried later.
-  const tile = new Tile(x, y, box);
-  this.tiles.set(tile.key, tile);
-
-  const query = `
-[out:json][timeout:60];
-way["highway"]["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
-(${box.south},${box.west},${box.north},${box.east});
-out body;
-node(w);
-out body;
-  `.trim();
-
-  try {
-    const data = await this._fetchOverpass(query);
-
-    if (data.elements) {
-      for (const el of data.elements) {
-        if (el.type === "node") {
-          tile.addNode(el.id, {
-            lat: el.lat,
-            lon: el.lon
-          });
-        } else if (el.type === "way") {
-          tile.addWay(el.id, el);
-        }
-      }
+/**
+ * Loads OpenStreetMap data into an existing tile.
+ * @param {Tile} tile
+ */
+async loadTile(tile) {
+    // Don't reload an already loaded tile.
+    if (tile.isLoaded) {
+        return true;
     }
 
-    tile.isLoaded = true;
-  } catch (error) {
-    console.error(`Failed to load tile ${tile.key}:`, error);
-
-    // Leave tile.isLoaded = false so refreshRoadData()
-    // knows this tile still needs to be retried.
-  }
-
-  return tile;
-}
-
-  /**
-   * Reloads a tile
-   * Returns the new loaded tile, or null on failure 
-   * @param {Tile} tile 
-   * @returns {Tile | null}
-   */
-    async reloadTile(tile) {
     const box = tile.bbox;
-const query = `
+
+    const query = `
 [out:json][timeout:60];
 way["highway"]["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
 (${box.south},${box.west},${box.north},${box.east});
@@ -224,79 +169,80 @@ out body;
 node(w);
 out body;
     `.trim();
-    const data = await this._fetchOverpass(query);
-    if (data.elements) {
-    for (const el of data.elements) {
-      if (el.type === "node") {
-        tile.addNode(
-        el.id,
-        {lat: el.lat, lon: el.lon}
-      );
-      continue;
-      }
-      if (el.type === "way") tile.addWay(el.id, el);
-    }
-    tile.isLoaded = true;
-    }
-    return tile;
-  }
 
-  /**
-   * Checks that all tiles are created based on the given coordinates and the given radius in grid units 
-   * If radius = 1, function ensures 3x3 tiles are surrounding the coordinates 
-   * If radius = 2, function ensures 5x5 tiles are surrounding the coordinates 
-   * @param {number} lat - The center lattitude 
-   * @param {number} lon - The center longitude 
-   * @param {number} radius - Used to calculate the tiles grid 
-   * Returns a list of new tiles 
-   * @returns {Tile[]}
-   */
-  async ensureTilesAround(lat, lon, radius=1) {
-    /** @type {Tile[]}  A list of new tiles */
-    const tiles = [];
-    const center = this.latLonToTileXY(lat, lon);
-const MAX_RETRIES = 5;
+    try {
+        const data = await this._fetchOverpass(query);
 
-for (let dx = -radius; dx <= radius; dx++) {
-    for (let dy = -radius; dy <= radius; dy++) {
+        // If this is a retry, make sure the tile is empty first.
+        tile.clear();
 
-        const x = center.x + dx;
-        const y = center.y + dy;
-        const key = `${x}_${y}`;
-
-        if (this.tiles.has(key)) continue;
-
-        let tile = null;
-
-        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            try {
-                tile = await this.loadTile(x, y);
-                break;
-            } catch (error) {
-                console.warn(
-                    `Tile ${key} failed (attempt ${attempt}/${MAX_RETRIES})`,
-                    error
-                );
-
-                if (attempt < MAX_RETRIES) {
-                    await Utils.sleep(5000 * attempt);
+        if (data.elements) {
+            for (const el of data.elements) {
+                if (el.type === "node") {
+                    tile.addNode(el.id, {
+                        lat: el.lat,
+                        lon: el.lon
+                    });
+                }
+                else if (el.type === "way") {
+                    tile.addWay(el.id, el);
                 }
             }
         }
 
-        if (!tile) {
-            console.warn(`Skipping tile ${key} after ${MAX_RETRIES} failed attempts.`);
-            continue;
-        }
+        tile.isLoaded = true;
+        return true;
+    }
+    catch (error) {
+        console.error(`Failed to load tile ${tile.key}:`, error);
 
-        tiles.push(tile);
-
-        // Optional: avoid hitting Overpass too quickly
-        await Utils.sleep(5000);
+        tile.isLoaded = false;
+        return false;
     }
 }
+
+/**
+ * Checks that all tiles are created based on the given coordinates and the given radius in grid units.
+ * If radius = 1, ensures a 3x3 grid of tiles.
+ * If radius = 2, ensures a 5x5 grid of tiles.
+ *
+ * @param {number} lat - Center latitude.
+ * @param {number} lon - Center longitude.
+ * @param {number} radius - Radius in tile units.
+ * @returns {Tile[]}
+ */
+ensureTilesAround(lat, lon, radius = 1) {
+    /** @type {Tile[]} */
+    const tiles = [];
+
+    const center = this.latLonToTileXY(lat, lon);
+
+    for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+
+            const x = center.x + dx;
+            const y = center.y + dy;
+            const key = `${x}_${y}`;
+
+            let tile;
+
+            if (this.tiles.has(key)) {
+                // Tile already exists.
+                tile = this.tiles.get(key);
+            } else {
+                // Create a blank tile.
+                const box = this._getTileBoundingBox(x, y);
+                tile = new Tile(x, y, box);
+
+                this.tiles.set(tile.key, tile);
+            }
+
+            tiles.push(tile);
+        }
+    }
+
     return tiles;
-  }
+}
 
   _buildEdges() {
   for (const street of this.streets.values()) {
@@ -447,21 +393,61 @@ integrateTile(tile) {
   this._buildEdges();
 }
 
-  async loadGraph(lat, lon) {
+/**
+ * Loads the road graph for the specified location.
+ *
+ * Ensures that all tiles surrounding the given coordinates exist, then
+ * attempts to load each unloaded tile from OpenStreetMap. Each tile is
+ * retried up to a fixed number of times before being skipped. Successfully
+ * loaded tiles are integrated into the graph and their temporary data is
+ * discarded to reduce memory usage. Tiles that fail to load remain marked
+ * as unloaded so they can be retried later by {@link refreshRoadData}.
+ *
+ * @param {number} lat - The center latitude of the area to load.
+ * @param {number} lon - The center longitude of the area to load.
+ * @returns {Promise<boolean>} Resolves to `true` when the loading process
+ * completes, or `false` if an unexpected error occurs.
+ */
+async loadGraph(lat, lon) {
+    const MAX_RETRIES = 5;
+
     try {
-    const tiles = await this.ensureTilesAround(lat, lon);
-    for (const tile of tiles) {
-      this.integrateTile(tile);
-      if (tile.ways) tile.isLoaded = true;
-      tile.clear();
-    }
+        const tiles = this.ensureTilesAround(lat, lon);
+
+        for (const tile of tiles) {
+
+            // Already loaded on a previous call.
+            if (tile.isLoaded) {
+                continue;
+            }
+
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+
+                const success = await this.loadTile(tile);
+
+                if (success) {
+                    this.integrateTile(tile);
+                    tile.clear();
+                    break;
+                }
+
+                console.warn(
+                    `Tile ${tile.key} failed (attempt ${attempt}/${MAX_RETRIES}).`
+                );
+
+                if (attempt < MAX_RETRIES) {
+                    await Utils.sleep(5000 * attempt); // Exponential backoff
+                }
+            }
+        }
+
+        return true;
+
     } catch (error) {
-      console.log(`Loading error: ${error}`);
-      throw error;
-      return false;
+        console.error("Loading error:", error);
+        return false;
     }
-    return true;
-  }
+}
 
   /**
    * Returns the nearest intersection (with at least one named street) to the given coordinates.

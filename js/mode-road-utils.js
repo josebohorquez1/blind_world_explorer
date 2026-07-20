@@ -250,60 +250,67 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
         );
       };
 
-      export const refreshRoadData = async () => {
-          for (const btn of document.getElementsByTagName("button")) btn.disabled = true;
-          Utils.srAnnounce(announcementsMount, `<p>Attempting to to refresh unloaded intersections.</p>
-            <p>If you feel like expected intersections were not added, press the refresh button again when available.</p>`);
+export const refreshRoadData = async () => {
+    for (const btn of document.getElementsByTagName("button")) {
+        btn.disabled = true;
+    }
+
+    Utils.srAnnounce(
+        announcementsMount,
+        `<p>Attempting to refresh unloaded intersections.</p>
+         <p>If expected intersections are still missing, press the refresh button again when it becomes available.</p>`
+    );
+
     const MAX_RETRIES = 5;
 
     for (const tile of state.intersection_graph.tiles.values()) {
 
-        // Already loaded successfully.
+        // Skip tiles that are already part of the graph.
         if (tile.isLoaded) {
             continue;
         }
 
         console.log(`Retrying tile ${tile.key}...`);
 
-        let success = false;
-
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            try {
-                await state.intersection_graph.reloadTile(tile);
 
-                if (tile.isLoaded) {
-                    state.intersection_graph.integrateTile(tile);
-                    tile.clear();
+            const success = await state.intersection_graph.loadTile(tile);
 
-                    console.log(
-                        `Loaded tile ${tile.key} on attempt ${attempt}.`
-                    );
+            if (success) {
+                state.intersection_graph.integrateTile(tile);
+                tile.clear();
 
-                    success = true;
-                    break;
-                }
-            }
-            catch (error) {
-                console.error(
-                    `Tile ${tile.key} failed (attempt ${attempt}/${MAX_RETRIES}).`,
-                    error
+                console.log(
+                    `Loaded tile ${tile.key} on attempt ${attempt}.`
                 );
+
+                break;
             }
+
+            console.warn(
+                `Tile ${tile.key} failed (attempt ${attempt}/${MAX_RETRIES}).`
+            );
 
             if (attempt < MAX_RETRIES) {
                 await Utils.sleep(5000 * attempt);
             }
         }
-
-        if (!success) {
-            console.warn(
-                `Skipping tile ${tile.key} after ${MAX_RETRIES} failed attempts.`
-            );
-        }
     }
-          Utils.srAnnounce(announcementsMount, `${updateAlignment(state.current_heading, state.current_intersection, "", true)}`);
-          for (const btn of document.getElementsByTagName("button")) btn.disabled = false;
-          };
+
+    Utils.srAnnounce(
+        announcementsMount,
+        updateAlignment(
+            state.current_heading,
+            state.current_intersection,
+            "",
+            true
+        )
+    );
+
+    for (const btn of document.getElementsByTagName("button")) {
+        btn.disabled = false;
+    }
+};
 
           export const toggleUnnamedRoads = (event) => {
                 const getNeighbors = () => {
