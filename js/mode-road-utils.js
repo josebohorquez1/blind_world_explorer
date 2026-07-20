@@ -190,7 +190,7 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
         <p>If the update seemed  to have failed, press the refresh button to try again.</p>`
       );
       document.getElementById("nav-refresh-road").disabled = true;
-        await state.intersection_graph.loadGraph(state.lat, state.lon);
+        await state.intersection_graph.loadGraph(state.lat, state.lon, 1);
         updateUi();
         document.getElementById("nav-refresh-road").disabled = false;
         isUpdating = false;

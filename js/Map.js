@@ -405,11 +405,11 @@ integrateTile(tile) {
  *
  * @param {number} lat - The center latitude of the area to load.
  * @param {number} lon - The center longitude of the area to load.
+ * @param {number} [maxRetries=5] The number of retries for each request, default 5 
  * @returns {Promise<boolean>} Resolves to `true` when the loading process
  * completes, or `false` if an unexpected error occurs.
  */
-async loadGraph(lat, lon) {
-    const MAX_RETRIES = 5;
+async loadGraph(lat, lon, maxRetries = 5) {
 
     try {
         const tiles = this.ensureTilesAround(lat, lon);
@@ -421,7 +421,7 @@ async loadGraph(lat, lon) {
                 continue;
             }
 
-            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
 
                 const success = await this.loadTile(tile);
 
@@ -435,7 +435,7 @@ async loadGraph(lat, lon) {
                     `Tile ${tile.key} failed (attempt ${attempt}/${MAX_RETRIES}).`
                 );
 
-                if (attempt < MAX_RETRIES) {
+                if (attempt < maxRetries) {
                     await Utils.sleep(5000 * attempt); // Exponential backoff
                 }
             }
