@@ -100,6 +100,7 @@ get isUnnamed() {
     "secondary_link",
     "tertiary_link",
     "trunk_link",
+    "cycleway",
     "construction"
   ];
 

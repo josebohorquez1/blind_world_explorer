@@ -163,7 +163,7 @@ async loadTile(tile) {
 
     const query = `
 [out:json][timeout:60];
-way["highway"]["highway"!~"footway|path|cycleway|bridleway|steps|corridor|sidewalk|track"]
+way["highway"]["highway"!~"footway|path|bridleway|steps|corridor|sidewalk|track"]
 (${box.south},${box.west},${box.north},${box.east});
 out body;
 node(w);
