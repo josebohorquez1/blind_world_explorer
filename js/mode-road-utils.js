@@ -261,7 +261,7 @@ export const refreshRoadData = async () => {
          <p>If expected intersections are still missing, press the refresh button again when it becomes available.</p>`
     );
 
-    const MAX_RETRIES = 5;
+    const MAX_RETRIES = 3;
 
     for (const tile of state.intersection_graph.tiles.values()) {
 

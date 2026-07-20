@@ -432,7 +432,7 @@ async loadGraph(lat, lon, maxRetries = 5) {
                 }
 
                 console.warn(
-                    `Tile ${tile.key} failed (attempt ${attempt}/${MAX_RETRIES}).`
+                    `Tile ${tile.key} failed (attempt ${attempt}/${maxRetries}).`
                 );
 
                 if (attempt < maxRetries) {
