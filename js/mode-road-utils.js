@@ -190,7 +190,7 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
         <p>If the update seemed  to have failed, press the refresh button to try again.</p>`
       );
       document.getElementById("nav-refresh-road").disabled = true;
-        await state.intersection_graph.loadGraph(state.lat, state.lon, 1);
+        await state.intersection_graph.loadGraph(state.lat, state.lon, 2);
         updateUi();
         document.getElementById("nav-refresh-road").disabled = false;
         isUpdating = false;
@@ -263,6 +263,9 @@ export const refreshRoadData = async () => {
 
     const MAX_RETRIES = 3;
 
+    state.intersection_graph.ensureTilesAround(
+      state.lat, state.lon
+    );
     for (const tile of state.intersection_graph.tiles.values()) {
 
         // Skip tiles that are already part of the graph.
