@@ -96,7 +96,7 @@ export async function getTile(key) {
         const transaction = cacheDb.transaction("tiles", "readonly");
         const store = transaction.objectStore("tiles");
         const request = store.get(key);
-        request.onsuccess = () => {
+        request.onsuccess = async () => {
             const tile = request.result;
             if (!tile) {
                 resolve(null);
@@ -164,5 +164,4 @@ function ensureCacheInitialized() {
   if (!cacheDb) {
     throw new Error("Error: Cache not initialized.");
   }
-
 }

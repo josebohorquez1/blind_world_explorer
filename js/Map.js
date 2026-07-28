@@ -19,6 +19,7 @@ import { Edge } from "./map-edge.js";
 import { Intersection } from "./map-intersection.js";
 import { Tile } from "./map-tile.js";
 import { Neighbor } from "./map-neighbor.js";
+import * as mapCache from "./map-cache.js";
 
 const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 
@@ -158,6 +159,13 @@ async loadTile(tile) {
     if (tile.isLoaded) {
         return true;
     }
+    const cachedTile = await mapCache.getTile(tile.key);
+    if (cachedTile) {
+      tile.nodes = cachedTile.nodes;
+      tile.ways = cachedTile.ways;
+      tile.isLoaded = true;
+      return true;
+    }
 
     const box = tile.bbox;
 
@@ -189,7 +197,7 @@ out body;
                 }
             }
         }
-
+        await mapCache.saveTile(tile);
         tile.isLoaded = true;
         return true;
     }
@@ -485,7 +493,6 @@ async loadGraph(lat, lon, mount = null, maxRetries = 5) {
             }
             loaded++;
             if (mount) this.announceLoadingProgress(mount, loaded, tileTotal);
-            await Utils.sleep(5000);
         }
 
         return true;

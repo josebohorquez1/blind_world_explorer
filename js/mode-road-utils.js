@@ -7,6 +7,7 @@ import * as Utils from "./UtilFunctions.js";
 import { initExploreMode } from "./mode-explore.js";
 import { keyboardEvents } from "./mode-road-keyboard.js";
 import { initStartScreen } from "./Start.js";
+import * as mapCache from "./map-cache.js";
 
 //Variables
 const statusMount = document.getElementById("status-text");
@@ -61,7 +62,7 @@ export const initData = async () => {
 </div>`
     );
       let announcements = "";
-
+      await mapCache.initCache();
         const fetchResponse = await state.intersection_graph.loadGraph(state.lat, state.lon, announcementsMount);
         if (!fetchResponse) {
           Utils.srAnnounce(statusMount, `Unable to load intersection data. Returning to explorer mode. Click the "Switch to road mode" button to try again.`);
