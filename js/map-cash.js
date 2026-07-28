@@ -2,6 +2,8 @@ import { Tile } from "./map-tile.js";
 
 /** @type {IDBDatabase | null} */
 let cacheDb = null;
+/** Maximum age of a cached tile (30 days). */
+const MAX_TILE_AGE = 30 * 24 * 60 * 60 * 1000;
 
 /**
  * Initializes the tile cache database.
@@ -79,7 +81,17 @@ export async function getTile(key) {
         const store = transaction.objectStore("tiles");
         const request = store.get(key);
         request.onsuccess = () => {
-            resolve(request.result);
+            const tile = request.result;
+            if (!tile) {
+                resolve(null);
+                return;
+            }
+            if (Date.now() - tile.timestamp > MAX_TILE_AGE) {
+                await deleteTile(key);
+                resolve(null);
+                return;
+            }
+            resolve(tile);
         };
         request.onerror = () => {
             reject(request.error);
@@ -102,6 +114,25 @@ export async function deleteTile(key) {
         const transaction = cacheDb.transaction("tiles", "readwrite");
         const store = transaction.objectStore("tiles");
         store.delete(key);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+    });
+}
+
+/**
+ * Deletes all cached tiles from the local cache.
+ *
+ * Removes every tile stored in the IndexedDB cache. This operation
+ * permanently clears the tile cache and is typically used to reset
+ * cached map data.
+ *
+ * @returns {Promise<void>} Resolves when the cache has been cleared.
+ */
+export async function clearTilesFromCache() {
+    return new Promise((resolve, reject) => {
+        const transaction = cacheDb.transaction("tiles", "readwrite");
+        const store = transaction.objectStore("tiles");
+        store.clear();
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error);
     });
