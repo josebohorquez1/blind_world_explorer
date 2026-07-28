@@ -86,3 +86,23 @@ export async function getTile(key) {
         };
     });
 }
+
+/**
+ * Deletes a tile from the local cache.
+ *
+ * Removes the cached tile with the specified key from the IndexedDB
+ * database. If no tile with the given key exists, no action is taken.
+ *
+ * @param {string} key - The unique key identifying the tile to delete.
+ * @returns {Promise<void>} Resolves when the tile has been removed from
+ * the cache.
+ */
+export async function deleteTile(key) {
+    return new Promise((resolve, reject) => {
+        const transaction = cacheDb.transaction("tiles", "readwrite");
+        const store = transaction.objectStore("tiles");
+        store.delete(key);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+    });
+}
