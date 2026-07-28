@@ -393,6 +393,47 @@ integrateTile(tile) {
 }
 
 /**
+ * Announces the progress of tile loading.
+ *
+ * @param {HTMLElement} mount - Element where the announcement is rendered.
+ * @param {number} current - Number of tiles completed.
+ * @param {number} total - Total number of tiles to load.
+ */
+announceLoadingProgress(mount, current, total) {
+    const percent = Math.min(
+      Math.round((current / total) * 100), 100
+    );
+
+    Utils.srAnnounce(
+        mount,
+        `
+        <div role="status" aria-live="polite">
+            <p>Loading intersections (${current} of ${total})...</p>
+
+            <div
+                class="progress"
+                aria-label="Loading progress"
+                aria-valuemin="0"
+                aria-valuemax="${total}"
+                aria-valuenow="${current}"
+            >
+                <div
+                    class="progress-bar"
+                    role="progressbar"
+                    style="width: ${percent}%"
+                    aria-valuenow="${percent}"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                >
+                    ${percent}%
+                </div>
+            </div>
+        </div>
+        `
+    );
+}
+
+/**
  * Loads the road graph for the specified location.
  *
  * Ensures that all tiles surrounding the given coordinates exist, then
@@ -404,14 +445,18 @@ integrateTile(tile) {
  *
  * @param {number} lat - The center latitude of the area to load.
  * @param {number} lon - The center longitude of the area to load.
+ * @param {HTMLElement} [mount=null] - The element where the loading progress occurs, if null, no announcements
  * @param {number} [maxRetries=5] The number of retries for each request, default 5 
  * @returns {Promise<boolean>} Resolves to `true` when the loading process
  * completes, or `false` if an unexpected error occurs.
  */
-async loadGraph(lat, lon, maxRetries = 5) {
+async loadGraph(lat, lon, mount = null, maxRetries = 5) {
 
     try {
         const tiles = this.ensureTilesAround(lat, lon);
+        const tileTotal = tiles.length;
+        let loaded = 0;
+        if (mount) this.announceLoadingProgress(mount, loaded, tileTotal);
 
         for (const tile of tiles) {
 
@@ -438,6 +483,9 @@ async loadGraph(lat, lon, maxRetries = 5) {
                     await Utils.sleep(5000 * attempt); // Exponential backoff
                 }
             }
+            loaded++;
+            if (mount) this.announceLoadingProgress(mount, loaded, tileTotal);
+            await Utils.sleep(5000);
         }
 
         return true;

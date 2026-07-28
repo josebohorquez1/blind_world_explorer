@@ -62,7 +62,7 @@ export const initData = async () => {
     );
       let announcements = "";
 
-        const fetchResponse = await state.intersection_graph.loadGraph(state.lat, state.lon);
+        const fetchResponse = await state.intersection_graph.loadGraph(state.lat, state.lon, announcementsMount);
         if (!fetchResponse) {
           Utils.srAnnounce(statusMount, `Unable to load intersection data. Returning to explorer mode. Click the "Switch to road mode" button to try again.`);
           returnToExploreMode();
