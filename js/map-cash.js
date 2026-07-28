@@ -1,3 +1,17 @@
+/**
+ * @file map_cache.js
+ *
+ * Provides a persistent cache for downloaded map tiles using the
+ * browser's IndexedDB API. Cached tiles are stored locally so they can
+ * be reused without repeatedly downloading the same road data from the
+ * Overpass API, improving performance and reducing network requests.
+ *
+ * The cache stores each tile's coordinates, bounding box, road network
+ * data, and the time it was cached. Cached tiles may be refreshed or
+ * replaced when they exceed the maximum cache age.
+ */
+
+//Importing the Tile class
 import { Tile } from "./map-tile.js";
 
 /** @type {IDBDatabase | null} */
@@ -47,6 +61,7 @@ export async function initCache() {
  * @returns {Promise<void>} Resolves when the tile has been saved.
  */
 export async function saveTile(tile) {
+    ensureCacheInitialized();
     return new Promise((resolve, reject) => {
         const transaction = cacheDb.transaction("tiles", "readwrite");
         const store = transaction.objectStore("tiles");
@@ -76,6 +91,7 @@ export async function saveTile(tile) {
  * found; otherwise, null.
  */
 export async function getTile(key) {
+    ensureCacheInitialized();
     return new Promise((resolve, reject) => {
         const transaction = cacheDb.transaction("tiles", "readonly");
         const store = transaction.objectStore("tiles");
@@ -110,6 +126,7 @@ export async function getTile(key) {
  * the cache.
  */
 export async function deleteTile(key) {
+    ensureCacheInitialized();
     return new Promise((resolve, reject) => {
         const transaction = cacheDb.transaction("tiles", "readwrite");
         const store = transaction.objectStore("tiles");
@@ -129,6 +146,7 @@ export async function deleteTile(key) {
  * @returns {Promise<void>} Resolves when the cache has been cleared.
  */
 export async function clearTilesFromCache() {
+    ensureCacheInitialized();
     return new Promise((resolve, reject) => {
         const transaction = cacheDb.transaction("tiles", "readwrite");
         const store = transaction.objectStore("tiles");
@@ -136,4 +154,15 @@ export async function clearTilesFromCache() {
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error);
     });
+}
+
+/**
+ * Ensure the cache is initialized
+ * Used to prevent functions from making a connection to an uninitialized database
+ */
+function ensureCacheInitialized() {
+  if (!cacheDb) {
+    throw new Error("Error: Cache not initialized.");
+  }
+
 }
