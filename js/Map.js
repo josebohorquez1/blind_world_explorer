@@ -862,4 +862,26 @@ getNeighbors(intersectionId) {
     return this.intersections.size > 0;
   }
 
+  /**
+ * Retrieves an existing tile or creates a new blank tile.
+ *
+ * Returns the tile at the specified grid coordinates if it already
+ * exists. Otherwise, a new tile is created with the appropriate
+ * bounding box, added to the tile map, and returned. This function
+ * does not load any road data into the tile.
+ *
+ * @param {number} x - The tile's x-coordinate.
+ * @param {number} y - The tile's y-coordinate.
+ * @returns {Tile} The existing or newly created tile.
+ */
+  getOrCreateTile(x, y) {
+    const key = `${x}_${y}`;
+    if (this.tiles.has(key)) {
+      return this.tiles.get(key);
+    }
+    const bbox = this._getTileBoundingBox(x, y);
+    const tile = new Tile(x, y, bbox);
+    this.tiles.set(key, tile);
+    return tile;
+  }
 }

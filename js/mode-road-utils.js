@@ -13,6 +13,7 @@ import * as mapCache from "./map-cache.js";
 const statusMount = document.getElementById("status-text");
 const announcementsMount = document.getElementById("announcements-mount");
 let isUpdating = false;
+let updatePending = false;
 
 //Fail safe function: return to explore mode.
 export const returnToExploreMode = () => {
@@ -171,9 +172,6 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
     <p>Next intersection: ${nextIntersection.description}, ${Utils.printDistance(neighbor.distance)}</p>`;
 };
 
-    export const updateTiles = async () => {
-      if (isUpdating) return;
-      isUpdating = true;
       const updateUi = () => {
       const intersectionAnnouncements = updateIntersection(state.current_heading, state.current_intersection, false);
       const alignAnnouncements = updateAlignment(state.current_heading, state.current_intersection, "", true);
@@ -181,54 +179,83 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
         Utils.srAnnounce(document.getElementById("announcements-mount"), `${alignAnnouncements}`);
       };
 
-      const currentTileKey = state.current_tile;
-      const tile = state.intersection_graph.tiles.get(currentTileKey);
-      if (!tile) {
-      Utils.srAnnounce(
-        document.getElementById("announcements-mount"),
-        `<p>Attempting to update intersections for further exploration.</p>
-        <p>You may continue to navigate while intersections load.</p>
-        <p>If the update seemed  to have failed, press the refresh button to try again.</p>`
-      );
-      document.getElementById("nav-refresh-road").disabled = true;
-        await state.intersection_graph.loadGraph(state.lat, state.lon, 2);
-        updateUi();
-        document.getElementById("nav-refresh-road").disabled = false;
-        isUpdating = false;
+    export const updateTiles = async () => {
+      if (isUpdating) {
+        updatePending = true;
         return;
       }
-      const directions = ["north", "east", "south", "west"];
-      const direction = directions[
-        Math.floor((state.current_heading + 45) / 90) % 4
-      ];
-      let distance = 0;
-      switch (direction) {
-        case "north":
-          distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, tile.bbox.north, state.lon);
-          break;
-          case "east":
-            distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, state.lat, tile.bbox.east);
-            break;
-            case "south":
-              distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, tile.bbox.south, state.lon);
+      isUpdating = true;
+      try {
+        const currentTileKey = state.current_tile;
+        let [x, y] = currentTileKey.split("_")
+        .map(Number);
+        let distance = 0;
+
+        /** @type {Tile|null} */
+        let tile = null;
+
+        if (!state.intersection_graph.tiles.has(currentTileKey)) {
+          tile = state.intersection_graph.getOrCreateTile(
+            x, y
+          );
+        }
+        else {
+          tile = state.intersection_graph.tiles.get(currentTileKey)
+          const directions = ["north", "east", "south", "west"];
+          const direction = directions[
+            Math.floor((state.current_heading + 45) / 90) % 4
+          ];
+          switch (direction) {
+            case "north":
+              distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, tile.bbox.north, state.lon);
+              y += 1;
               break;
-              case "west":
-                distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, state.lat, tile.bbox.west);
+              case "east":
+                distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, state.lat, tile.bbox.east);
+                x += 1;
                 break;
+                case "south":
+                  distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, tile.bbox.south, state.lon);
+                  y -= 1;
+                  break;
+                  case "west":
+                    distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, state.lat, tile.bbox.west);
+                    x -= 1;
+                    break;
+          }
+          if (distance > 1000) {
+            return;
+          }
+          tile = state.intersection_graph.getOrCreateTile(x, y);
+        }
+        if (tile.isLoaded) return;
+        Utils.srAnnounce(
+          announcementsMount,
+          `<p>Updating nearby intersections.</p>
+<p>You may continue navigating while the update is in progress.</p>`
+        );
+        const maxRetries = 3;
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            const success = await state.intersection_graph.loadTile(tile);
+            if (success) {
+              state.intersection_graph.integrateTile(tile);
+              tile.clear();
+              updateUi();
+              break;
+            }
+            if (attempt < maxRetries) {
+              await Utils.sleep(5000 * attempt);
+            }
+          }
       }
-      if (distance <= 1000) {
-      Utils.srAnnounce(
-        document.getElementById("announcements-mount"),
-        `<p>Attempting to update intersections for further exploration.</p>
-        <p>You may continue to navigate while intersections load.</p>
-        <p>If the update seemed  to have failed, press the refresh button to try again.</p>`
-      );
-      document.getElementById("nav-refresh-road").disabled = true;
-        await state.intersection_graph.loadGraph(state.lat, state.lon);
-        updateUi();
+      finally {
+        document.getElementById("nav-refresh-road").disabled = false;
+        isUpdating = false;
+        if (updatePending) {
+          updatePending = false;
+          await updateTiles();
+        }
       }
-      document.getElementById("nav-refresh-road").disabled = false;
-      isUpdating = false;
     };
 
   export const switchToExploreMode = () => {
@@ -261,40 +288,21 @@ export const refreshRoadData = async () => {
         `<p>Attempting to refresh unloaded intersections.</p>
          <p>If expected intersections are still missing, press the refresh button again when it becomes available.</p>`
     );
-
     const MAX_RETRIES = 3;
-
     state.intersection_graph.ensureTilesAround(
       state.lat, state.lon
     );
     for (const tile of state.intersection_graph.tiles.values()) {
-
-        // Skip tiles that are already part of the graph.
         if (tile.isLoaded) {
             continue;
         }
-
-        console.log(`Retrying tile ${tile.key}...`);
-
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-
             const success = await state.intersection_graph.loadTile(tile);
-
             if (success) {
                 state.intersection_graph.integrateTile(tile);
                 tile.clear();
-
-                console.log(
-                    `Loaded tile ${tile.key} on attempt ${attempt}.`
-                );
-
                 break;
             }
-
-            console.warn(
-                `Tile ${tile.key} failed (attempt ${attempt}/${MAX_RETRIES}).`
-            );
-
             if (attempt < MAX_RETRIES) {
                 await Utils.sleep(5000 * attempt);
             }
