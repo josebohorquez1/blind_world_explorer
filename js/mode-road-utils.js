@@ -258,9 +258,7 @@ const distances = [
           `<p>Updating nearby intersections.</p>
 <p>You may continue navigating while the update is in progress.</p>`
         );
-            for (const btn of document.getElementsByTagName("button")) {
-        btn.disabled = true;
-    }
+        document.getElementById("nav-refresh-road").disabled = true;
         const maxRetries = 3;
           for (let attempt = 1; attempt <= maxRetries; attempt++) {
             const success = await state.intersection_graph.loadTile(tile);
