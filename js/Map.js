@@ -457,34 +457,26 @@ announceLoadingProgress(mount, current, total) {
  * completes, or `false` if an unexpected error occurs.
  */
 async loadGraph(lat, lon, mount = null, maxRetries = 5) {
-
     try {
         const tiles = this.ensureTilesAround(lat, lon);
         const tileTotal = tiles.length;
         let loaded = 0;
         if (mount) this.announceLoadingProgress(mount, loaded, tileTotal);
-
         for (const tile of tiles) {
-
             // Already loaded on a previous call.
             if (tile.isLoaded) {
                 continue;
             }
-
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
-
                 const success = await this.loadTile(tile);
-
                 if (success) {
                     this.integrateTile(tile);
                     tile.clear();
                     break;
                 }
-
                 console.warn(
                     `Tile ${tile.key} failed (attempt ${attempt}/${maxRetries}).`
                 );
-
                 if (attempt < maxRetries) {
                     await Utils.sleep(5000 * attempt); // Exponential backoff
                 }
@@ -492,9 +484,7 @@ async loadGraph(lat, lon, mount = null, maxRetries = 5) {
             loaded++;
             if (mount) this.announceLoadingProgress(mount, loaded, tileTotal);
         }
-
         return true;
-
     } catch (error) {
         console.error("Loading error:", error);
         return false;
