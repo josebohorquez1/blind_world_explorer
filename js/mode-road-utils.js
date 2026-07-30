@@ -189,9 +189,8 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
         const currentTileKey = state.current_tile;
         let [x, y] = currentTileKey.split("_")
         .map(Number);
-        let distance = 0;
 
-        /** @type {Tile|null} */
+        /** @type {Tile} */
         let tile = null;
 
         if (!state.intersection_graph.tiles.has(currentTileKey)) {
@@ -200,31 +199,56 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
           );
         }
         else {
-          tile = state.intersection_graph.tiles.get(currentTileKey)
-          const directions = ["north", "east", "south", "west"];
-          const direction = directions[
-            Math.floor((state.current_heading + 45) / 90) % 4
-          ];
-          switch (direction) {
+          tile = state.intersection_graph.tiles.get(currentTileKey);
+          const threshold = 1000;
+      const directions = ["north", "east", "south", "west"];
+      const headingDirection = directions[
+        Math.floor((state.current_heading + 45) / 90) % 4
+      ];
+const distances = [
+    {
+        direction: "north",
+        distance: Utils.calculateDistanceBetweenCordinates(
+            state.lat, state.lon, tile.bbox.north, state.lon
+        )
+    },
+    {
+        direction: "east",
+        distance: Utils.calculateDistanceBetweenCordinates(
+            state.lat, state.lon, state.lat, tile.bbox.east
+        )
+    },
+    {
+        direction: "south",
+        distance: Utils.calculateDistanceBetweenCordinates(
+            state.lat, state.lon, tile.bbox.south, state.lon
+        )
+    },
+    {
+        direction: "west",
+        distance: Utils.calculateDistanceBetweenCordinates(
+            state.lat, state.lon, state.lat, tile.bbox.west
+        )
+    }
+];
+          const candidates = distances.filter(d => d.distance <= threshold);
+          if (candidates.length === 0) return;
+          const candidate = candidates.length === 1 ?
+          candidates[0] : candidates.find(d => d.direction === headingDirection);
+          if (!candidate) return;
+          switch(candidate.direction) {
             case "north":
-              distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, tile.bbox.north, state.lon);
               y += 1;
               break;
               case "east":
-                distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, state.lat, tile.bbox.east);
                 x += 1;
                 break;
                 case "south":
-                  distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, tile.bbox.south, state.lon);
                   y -= 1;
                   break;
                   case "west":
-                    distance = Utils.calculateDistanceBetweenCordinates(state.lat, state.lon, state.lat, tile.bbox.west);
                     x -= 1;
                     break;
-          }
-          if (distance > 1000) {
-            return;
           }
           tile = state.intersection_graph.getOrCreateTile(x, y);
         }
