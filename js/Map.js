@@ -211,7 +211,7 @@ out body;
 
 /**
  * Checks that all tiles are created based on the given coordinates and the given radius in grid units.
- * If radius = 1, ensures a 2x2 grid of tiles.
+ * If radius = 1, ensures a grid of 1 center tile and 4 surrounding tiles
  *
  * @param {number} lat - Center latitude.
  * @param {number} lon - Center longitude.
@@ -223,31 +223,29 @@ ensureTilesAround(lat, lon, radius = 1) {
     const tiles = [];
 
     const center = this.latLonToTileXY(lat, lon);
-
-    for (let dx = -radius; dx < radius; dx++) {
-        for (let dy = -radius; dy < radius; dy++) {
-
-            const x = center.x + dx;
-            const y = center.y + dy;
-            const key = `${x}_${y}`;
-
-            let tile;
-
-            if (this.tiles.has(key)) {
-                // Tile already exists.
-                tile = this.tiles.get(key);
-            } else {
-                // Create a blank tile.
-                const box = this._getTileBoundingBox(x, y);
-                tile = new Tile(x, y, box);
-
-                this.tiles.set(tile.key, tile);
-            }
-
-            tiles.push(tile);
-        }
+    const offsets = [
+    [0, 0],        // Current tile first
+    [0, radius],   // North
+    [radius, 0],   // East
+    [0, -radius],  // South
+    [-radius, 0]   // West
+];
+    for (const [dx, dy] of offsets) {
+          const x = center.x + dx;
+          const y = center.y + dy;
+          const key = `${x}_${y}`;
+          let tile;
+          if (this.tiles.has(key)) {
+              // Tile already exists.
+              tile = this.tiles.get(key);
+          } else {
+              // Create a blank tile.
+              const box = this._getTileBoundingBox(x, y);
+              tile = new Tile(x, y, box);
+              this.tiles.set(tile.key, tile);
+          }
+          tiles.push(tile);
     }
-
     return tiles;
 }
 
