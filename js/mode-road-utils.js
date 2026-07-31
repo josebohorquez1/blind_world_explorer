@@ -199,7 +199,7 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
           const threshold = 1000;
       const directions = ["north", "east", "south", "west"];
       const headingDirection = directions[
-        Math.floor((state.current_heading + 45) / 90) % 4
+        Math.floor((heading + 45) / 90) % 4
       ];
 const distances = [
     {
