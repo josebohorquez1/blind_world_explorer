@@ -179,27 +179,23 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
         Utils.srAnnounce(document.getElementById("announcements-mount"), `${alignAnnouncements}`);
       };
 
-    export const updateTiles = async () => {
+    export const updateTiles = async (key, heading) => {
       if (isUpdating) {
         updatePending = true;
         return;
       }
       isUpdating = true;
       try {
-        const currentTileKey = state.current_tile;
-        let [x, y] = currentTileKey.split("_")
+        let [x, y] = key.split("_")
         .map(Number);
-
-        /** @type {Tile} */
         let tile = null;
-
-        if (!state.intersection_graph.tiles.has(currentTileKey)) {
+        if (!state.intersection_graph.tiles.has(key)) {
           tile = state.intersection_graph.getOrCreateTile(
             x, y
           );
         }
         else {
-          tile = state.intersection_graph.tiles.get(currentTileKey);
+          tile = state.intersection_graph.tiles.get(key);
           const threshold = 1000;
       const directions = ["north", "east", "south", "west"];
       const headingDirection = directions[
@@ -265,6 +261,7 @@ const distances = [
             if (success) {
               state.intersection_graph.integrateTile(tile);
               tile.clear();
+              state.current_heading = heading;
               updateUi();
               break;
             }
@@ -284,7 +281,7 @@ const distances = [
         isUpdating = false;
         if (updatePending) {
           updatePending = false;
-          await updateTiles();
+          await updateTiles(state.current_tile, state.current_heading);
         }
       }
     };
@@ -397,6 +394,7 @@ export const refreshRoadData = async () => {
 
       // Step 1: Advance to the previously announced next intersection
       const oldCurrentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
+      const oldHeading = state.current_heading;
       const newIntersectionAnnouncements = updateIntersection(state.current_heading, state.current_intersection, true);
       const alignAnnouncement = updateAlignment(state.current_heading, state.current_intersection, "", true);
       const newCurrentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
@@ -418,7 +416,7 @@ export const refreshRoadData = async () => {
       Utils.srAnnounce(document.getElementById("announcements-mount"), announcements);
       //Wait 5 seconds before updates occur to allow for previous announcements to show up
       await Utils.sleep(2000);
-      await updateTiles();
+      await updateTiles(state.current_tile, oldHeading);
   };
 
   export const turnRight = () => {
