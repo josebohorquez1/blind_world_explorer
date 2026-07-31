@@ -266,7 +266,7 @@ ensureTilesAround(lat, lon, radius = 1) {
       const to = this.intersections.get(nodeId);
 
       const distance =
-        Utils.calculateDistanceBetweenCordinates(
+        Utils.calculateDistanceBetweenCoordinates(
           from.lat,
           from.lon,
           to.lat,
@@ -507,7 +507,7 @@ async loadGraph(lat, lon, mount = null, maxRetries = 5) {
       const namedStreets = [...intersection.edges.values()].filter(e => !e.segment.isUnnamed);
       if (namedStreets.length === 0) continue;
 
-      const dist = Utils.calculateDistanceBetweenCordinates(
+      const dist = Utils.calculateDistanceBetweenCoordinates(
         lat, lon,
         intersection.lat, intersection.lon
       );
@@ -585,7 +585,7 @@ getNeighbors(intersectionId) {
         origin.lat, origin.lon,
         currentIntersection.lat, currentIntersection.lon
       );
-      const distance = Utils.calculateDistanceBetweenCordinates(
+      const distance = Utils.calculateDistanceBetweenCoordinates(
         origin.lat, origin.lon,
         currentIntersection.lat, currentIntersection.lon
       );

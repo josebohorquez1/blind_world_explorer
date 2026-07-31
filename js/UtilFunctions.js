@@ -94,7 +94,7 @@ export const move = (lat1, lon1, moving_distance, heading) => {
  * @param {number} lon2
  * @returns {number}  Distance in meters
  */
-export const calculateDistanceBetweenCordinates = (lat1, lon1, lat2, lon2) => {
+export const calculateDistanceBetweenCoordinates = (lat1, lon1, lat2, lon2) => {
   const R = 6371000; // Earth's mean radius in meters
   const toRad = x => x * Math.PI / 180;
   const dLat = toRad(lat2 - lat1);

@@ -208,25 +208,25 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
 const distances = [
     {
         direction: "north",
-        distance: Utils.calculateDistanceBetweenCordinates(
+        distance: Utils.calculateDistanceBetweenCoordinates(
             state.lat, state.lon, tile.bbox.north, state.lon
         )
     },
     {
         direction: "east",
-        distance: Utils.calculateDistanceBetweenCordinates(
+        distance: Utils.calculateDistanceBetweenCoordinates(
             state.lat, state.lon, state.lat, tile.bbox.east
         )
     },
     {
         direction: "south",
-        distance: Utils.calculateDistanceBetweenCordinates(
+        distance: Utils.calculateDistanceBetweenCoordinates(
             state.lat, state.lon, tile.bbox.south, state.lon
         )
     },
     {
         direction: "west",
-        distance: Utils.calculateDistanceBetweenCordinates(
+        distance: Utils.calculateDistanceBetweenCoordinates(
             state.lat, state.lon, state.lat, tile.bbox.west
         )
     }
@@ -402,7 +402,7 @@ export const refreshRoadData = async () => {
       const newCurrentIntersection = state.intersection_graph.getIntersection(state.current_intersection);
 
       // Step 2: Calculate distance traveled and announce arrival
-      const distance = Utils.calculateDistanceBetweenCordinates(
+      const distance = Utils.calculateDistanceBetweenCoordinates(
         oldCurrentIntersection.lat, oldCurrentIntersection.lon,
         newCurrentIntersection.lat, newCurrentIntersection.lon
       );

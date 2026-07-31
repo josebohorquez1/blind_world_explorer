@@ -89,7 +89,7 @@ export const movePrevious = async () => {
        state.lat = prevLat;
        state.lon = prevLon;
  
-       const distanceMoved = Utils.calculateDistanceBetweenCordinates(currentLat, currentLon, prevLat, prevLon);
+       const distanceMoved = Utils.calculateDistanceBetweenCoordinates(currentLat, currentLon, prevLat, prevLon);
        const bearingToPrev = Utils.getBearingAndDirection(currentLat, currentLon, prevLat, prevLon);
  
        const newCurrentLocation = `${await reportCurrentLocation(prevLat, prevLon)}.`;
