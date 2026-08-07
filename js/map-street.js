@@ -109,6 +109,11 @@ get isUnnamed() {
     return false;
   }
 
+  //Roundabouts are allowed
+  if (this.junctionType === "roundabout") {
+    return false;
+  }
+  
   // Roads with names/refs are allowed unless disallowed
   if ((this.name || this.ref) && !disallowedHighwayTypes.includes(this.highwayType)) {
     return false;
