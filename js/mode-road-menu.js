@@ -1,6 +1,7 @@
 import { initDetailsModal } from "./details-modal.js";
 import { state } from "./state.js";
 import * as Utils from "./UtilFunctions.js";
+import { showDialog } from "./dialog.js";
 
 const injectToModal = async (content) => {
 
@@ -239,14 +240,27 @@ export const initRoadMenu = () => {
             input.select();
             const success = document.execCommand("copy");
             document.body.removeChild(input);
-            if (success) alert("Coordinates copied to clipboard.");
-            else alert("Failed to copy to clipboard.");
+            if (success) {
+                showDialog(
+                    "Coordinates copied to clipboard.",
+                    "The coordinates have been copied to your clipboard."
+                );
+            }
+            else {
+                showDialog(
+                    "Fail to Copy to Clipboard",
+                    "The coordinates were not able to be copied to your clipboard. Please try again later."
+                );
+            }
         }
         const coords = `${state.lat},${state.lon}`;
         if (navigator.clipboard && navigator.clipboard.writeText) {
         try {
             await navigator.clipboard.writeText(coords);
-            alert("Coordinates copied to clipboard.");
+            await showDialog(
+                "Coordinates Copied",
+                "The coordinates have been copied to your clipboard."
+            );
         }
         catch (error) {
             fallback(coords);
