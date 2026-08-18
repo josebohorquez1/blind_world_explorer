@@ -2,6 +2,7 @@ import { initDetailsModal } from "./details-modal.js";
 import { state } from "./state.js";
 import * as Utils from "./UtilFunctions.js";
 import { showDialog } from "./dialog.js";
+import { clearTilesFromCache } from "./map-cache.js";
 
 const injectToModal = async (content) => {
 
@@ -228,7 +229,7 @@ export const initRoadMenu = () => {
     });
 
     document.getElementById("menu-copy-coords").addEventListener("click", async () => {
-        function fallback(coords) {
+        async function fallback(coords) {
             const input = document.createElement("input");
             input.type = "text";
             input.value = coords;
@@ -241,13 +242,13 @@ export const initRoadMenu = () => {
             const success = document.execCommand("copy");
             document.body.removeChild(input);
             if (success) {
-                showDialog(
+                await showDialog(
                     "Coordinates copied to clipboard.",
                     "The coordinates have been copied to your clipboard."
                 );
             }
             else {
-                showDialog(
+                await showDialog(
                     "Fail to Copy to Clipboard",
                     "The coordinates were not able to be copied to your clipboard. Please try again later."
                 );
@@ -268,6 +269,25 @@ export const initRoadMenu = () => {
         }
         else fallback(coords);
         closeMenu(
+            document.getElementById("btn-menu"),
+            document.getElementById("menu")
+        );
+    });
+
+    document.getElementById("menu-clear-cache").addEventListener("click", async () => {
+        const response = await showDialog(
+            "Clear Stored Map Data?",
+            "Are you sure you wish to clear all stored map data? Stored map data helps the application load faster. If you proceed, all stored map data will be deleted and cannot be recovered.",
+            true
+        );
+        if (response) {
+            await clearTilesFromCache();
+            await showDialog(
+                "Stored Map Data Deleted",
+                "All stored map data has been deleted."
+            );
+        }
+    closeMenu(
             document.getElementById("btn-menu"),
             document.getElementById("menu")
         );

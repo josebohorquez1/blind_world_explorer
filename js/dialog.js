@@ -57,6 +57,7 @@ export async function showDialog(title, message, isConfirmation = false) {
         const cleanup = () => {
             okButton.removeEventListener("click", handleOk);
             cancelButton.removeEventListener("click", handleCancel);
+            dialog.removeEventListener("cancel", handleDismiss);
         };
         const handleOk = () => {
             cleanup();
@@ -75,7 +76,8 @@ export async function showDialog(title, message, isConfirmation = false) {
         }
         okButton.addEventListener("click", handleOk);
         cancelButton.addEventListener("click", handleCancel);
-        dialog.addEventListener("cancel", handleCancel, { once: true });
+        dialog.addEventListener("cancel", handleDismiss);
+        if (dialog.open) dialog.close();
         dialog.showModal();
         okButton.focus();
     })
