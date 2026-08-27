@@ -45,6 +45,7 @@ export class Street {
     if (this.highwayType === "service") return "Service Road";
     if (this.highwayType === "residential") return "Residential Street";
     if (this.highwayType === "construction") return "Construction";
+    if (this.highwayType === "cycleway") return "Bike Path";
     if (this.junctionType === "roundabout") return "Roundabout";
 
     if (
