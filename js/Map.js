@@ -531,55 +531,36 @@ async loadGraph(lat, lon, mount = null, maxRetries = 5) {
    * @returns {Array<Neighbor>}
    */
 getNeighbors(intersectionId) {
-  const origin = this.intersections.get(intersectionId);
+  const origin = this.getIntersection(intersectionId);
   if (!origin) return [];
 
+  /**@type Neighbor[] */
   const neighbors = [];
 
-  const pushOrMergeNeighbor = (candidate, referenceAngle) => {
-    const existing = neighbors.find(
-      n =>
-        n.originIntersectionId === candidate.originIntersectionId &&
-        n.nextIntersectionId === candidate.nextIntersectionId
-    );
-
-    if (!existing) {
-      neighbors.push(candidate);
-      return;
-    }
-
-    const existingDiff = Math.abs(Utils.angleDiff(referenceAngle, existing.angle));
-    const candidateDiff = Math.abs(Utils.angleDiff(referenceAngle, candidate.angle));
-
-    if (candidateDiff < existingDiff) {
-      const idx = neighbors.indexOf(existing);
-      neighbors[idx] = candidate;
-    }
-  };
-
+  const pushOrMergeNeighbor = (candidate) => {
+    const existingNeighbor = neighbors.find(n => (
+      n.originIntersectionId === candidate.originIntersectionId
+      && n.nextIntersectionId === candidate.nextIntersectionId
+    ));
+    if (existingNeighbor) return;
+    neighbors.push(candidate);
+  }
   for (const edge of origin.edges.values()) {
-
     if (this.unnamedRoadsDisabled && edge.segment.isUnnamed) continue;
-
-    // If unnamed roads are allowed, include direct neighbors
     if (!this.unnamedRoadsDisabled) {
-      neighbors.push(
-        new Neighbor(
-          origin.id,
-          edge.to,
-          edge.segment.id,
-          edge.angle,
-          edge.cardinal,
-          edge.distance
-        )
-      );
+      neighbors.push(new Neighbor(
+        origin.id,
+        edge.to,
+        edge.segment.id,
+        edge.angle,
+        edge.cardinal,
+        edge.distance
+      ));
       continue;
     }
-
     let currentEdge = edge;
     let currentIntersection = this.getIntersection(edge.to);
     const visited = new Set();
-
     while (true) {
       const angleAndDirection = Utils.getBearingAndDirection(
         origin.lat, origin.lon,
@@ -590,90 +571,52 @@ getNeighbors(intersectionId) {
         currentIntersection.lat, currentIntersection.lon
       );
       if (visited.has(currentIntersection.id)) {
-        pushOrMergeNeighbor(
-          new Neighbor(
-            origin.id,
-            currentIntersection.id,
-            currentEdge.segment.id,
-            angleAndDirection.angle,
-            angleAndDirection.cardinal,
-            distance
-          ),
-          angleAndDirection.angle
-        );
+        pushOrMergeNeighbor(new Neighbor(
+          origin.id,
+          currentIntersection.id,
+          currentEdge.segment.id,
+          angleAndDirection.angle,
+          angleAndDirection.cardinal,
+          distance
+        ));
         break;
       }
-
       visited.add(currentIntersection.id);
-
-      const intersectionEdges = [...currentIntersection.edges.values()];
-      const namedEdges = intersectionEdges.filter(e => !e.segment.isUnnamed);
-
-      const sameStreetEdges = namedEdges.filter(
-        e => e.segment.key === currentEdge.segment.key
-      );
-
-      const hasCrossStreet = namedEdges.some(
-        e => e.segment.key !== currentEdge.segment.key
-      );
-
-      if (hasCrossStreet || sameStreetEdges.length >= 3) {
-        pushOrMergeNeighbor(
-          new Neighbor(
-            origin.id,
-            currentIntersection.id,
-            currentEdge.segment.id,
-            angleAndDirection.angle,
-            angleAndDirection.cardinal,
-            distance
-          ),
-          angleAndDirection.angle
-        );
+      const currentIntersectionEdges = [...currentIntersection.edges.values()];
+      const namedEdges = currentIntersectionEdges.filter(e => !e.segment.isUnnamed);
+      const sameStreetEdges = namedEdges.filter(e => (
+        e.segment.key === currentEdge.segment.key
+      ));
+      const hasCrossStreets = namedEdges.some(e => (
+        e.segment.key !== currentEdge.segment.key
+      ));
+      if (hasCrossStreets || sameStreetEdges.length >= 3) {
+        pushOrMergeNeighbor(new Neighbor(
+          origin.id,
+          currentIntersection.id,
+          currentEdge.segment.id,
+          angleAndDirection.angle,
+          angleAndDirection.cardinal,
+          distance
+        ));
         break;
       }
-
-      const candidates = intersectionEdges.filter(e =>
-        e.segment.key === currentEdge.segment.key &&
-        e.to !== currentEdge.from
-      );
-
-      if (candidates.length === 0) {
-        pushOrMergeNeighbor(
-          new Neighbor(
-            origin.id,
-            currentIntersection.id,
-            currentEdge.segment.id,
-            angleAndDirection.angle,
-            angleAndDirection.cardinal,
-            distance
-          ),
-          angleAndDirection.angle
-        );
+      const candidates = sameStreetEdges.filter(e => e.to !== currentEdge.from);
+      if (candidates.length !== 1) {
+        pushOrMergeNeighbor(new Neighbor(
+          origin.id,
+          currentIntersection.id,
+          currentEdge.segment.id,
+          angleAndDirection.angle,
+          angleAndDirection.cardinal,
+          distance
+        ));
         break;
       }
-
-      let nextEdge;
-
-      if (candidates.length === 1) {
-        nextEdge = candidates[0];
-      } else {
-        const currentAngle = currentEdge.angle;
-
-        nextEdge = candidates.reduce((best, e) => {
-          if (!best) return e;
-
-          const bestDiff = Math.abs(Utils.angleDiff(currentAngle, best.angle));
-          const diff = Math.abs(Utils.angleDiff(currentAngle, e.angle));
-
-          return diff < bestDiff ? e : best;
-        }, null);
-      }
-
-      currentEdge = nextEdge;
-      currentIntersection = this.getIntersection(nextEdge.to);
+      currentEdge = candidates[0];
+      currentIntersection = this.getIntersection(currentEdge.to);
     }
   }
-
   return neighbors;
 }
 
