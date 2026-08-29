@@ -18,17 +18,78 @@ export class Street {
    * @param {object} osmWay  Raw OSM way element from an Overpass JSON response
    */
   constructor(osmWay) {
-    this.id = String(osmWay.id);
-    this.name = osmWay.tags?.name || null;
-    this.ref = osmWay.tags?.ref || null;
-    this.highwayType = osmWay.tags?.highway || "road";
-    this.junctionType = osmWay.tags?.junction || null;
-    this.destination = osmWay.tags?.destination || null;
-    this.destinationRef = osmWay.tags?.["destination:ref"] || null;
-    this.destinationStreet = osmWay.tags?.["destination:street"] ?? null;
-    this.junctionRef = osmWay.tags?.["junction:ref"] || null;
-    this.nodeIds = (osmWay.nodes || []).map(String);
-    this.details = osmWay;
+      const tags = osmWay.tags || {};
+      this.id = String(osmWay.id);
+
+      // Basic identification
+      this.name = tags.name || null;
+      this.ref = tags.ref || null;
+      this.unsignedRef = tags.unsigned_ref || null;
+
+      // Alternate names
+      this.officialName = tags.official_name || null;
+      this.altName = tags.alt_name || null;
+      this.oldName = tags.old_name || null;
+      this.localName = tags.loc_name || null;
+
+      // Ownership / operation
+      this.operator = tags.operator || null;
+      this.owner = tags.owner || null;
+
+      // Road / path classification
+      this.highwayType = tags.highway || "road";
+      this.footway = tags.footway || null;
+      this.designation = tags.designation || null;
+
+      this.lanes = tags.lanes || null;
+      this.bicycle = tags.bicycle || null;
+      this.cycleway = tags.cycleway || null;
+      this.foot = tags.foot || null;
+      this.sidewalk = tags.sidewalk || null;
+      this.busway = tags.busway || null;
+      this.busLanes = tags["lanes:bus"] || null;
+
+      // Path-specific access / usage
+      this.horse = tags.horse || null;
+      this.motorVehicle = tags.motor_vehicle || null;
+      this.motorcar = tags.motorcar || null;
+      this.segregated = tags.segregated || null;
+
+      // Traffic / routing
+      this.maxSpeed = tags.maxspeed || null;
+      this.oneway = tags.oneway || null;
+      this.junctionType = tags.junction || null;
+      this.junctionRef = tags["junction:ref"] || null;
+
+      // Destinations
+      this.destination = tags.destination || null;
+      this.destinationRef = tags["destination:ref"] || null;
+      this.destinationStreet = tags["destination:street"] || null;
+
+      // Physical characteristics
+      this.surface = tags.surface || null;
+      this.smoothness = tags.smoothness || null;
+      this.incline = tags.incline || null;
+      this.width = tags.width || null;
+      this.toll = tags.toll || null;
+      this.bridge = tags.bridge || null;
+      this.access = tags.access || null;
+      this.layer = tags.layer || null;
+      this.tunnel = tags.tunnel || null;
+
+      // Pedestrian / accessibility
+      this.crossing = tags.crossing || null;
+      this.crossingSignals = tags.crossing_signals || null;
+      this.tactilePaving = tags.tactile_paving || null;
+      this.wheelchair = tags.wheelchair || null;
+      this.lit = tags.lit || null;
+
+      // Hiking / trail information
+      this.sacScale = tags.sac_scale || null;
+      this.trailVisibility = tags.trail_visibility || null;
+
+      // OSM geometry
+      this.nodeIds = (osmWay.nodes || []).map(String);
   }
 
   /**
@@ -46,6 +107,8 @@ export class Street {
     if (this.highwayType === "residential") return "Residential Street";
     if (this.highwayType === "construction") return "Construction";
     if (this.highwayType === "cycleway") return "Bike Path";
+    if (this.highwayType === "footway") return "Walking Path";
+    if (this.highwayType === "path") return "Path";
     if (this.junctionType === "roundabout") return "Roundabout";
 
     if (

@@ -157,44 +157,75 @@ export const initRoadMenu = () => {
     document.getElementById("menu-street-details").addEventListener("click", () => {
         const street = state.intersection_graph.getStreet(state.current_neighbor.wayId);
         const details = {
+            // Basic identification
             "Label": street.label,
             "Name": street.name,
             "Ref": street.ref,
-            "Unsigned Ref": street.details.tags.unsigned_ref,
-            "Official Name": street.details.tags.official_name,
-"Alt Name": street.details.tags.alt_name,
-"Old Name": street.details.tags.old_name,
-"Local Name": street.details.tags.loc_name,
-"Operator": street.details.tags.operator,
-"Owner": street.details.tags.owner,
+            "Unsigned Ref": street.unsignedRef,
+
+            // Alternate names
+            "Official Name": street.officialName,
+            "Alt Name": street.altName,
+            "Old Name": street.oldName,
+            "Local Name": street.localName,
+
+            // Ownership / operation
+            "Operator": street.operator,
+            "Owner": street.owner,
+
+            // Road / path classification
             "Type": street.highwayType,
-            "Lanes": street.details.tags.lanes,
-            "Has Bike Lane": street.details.tags.bicycle,
-            "Is Cycleway": street.details.tags.cycleway,
-            "Has Sidewalk": street.details.tags.foot,
-            "Sidewalk": street.details.tags.sidewalk,
-            "Busway": street.details.tags.busway,
-"Bus Lanes": street.details.tags["lanes:bus"],
-            "Speed Limit": street.details.tags.maxspeed,
-            "Is Oneway": street.details.tags.oneway,
+            "Footway Type": street.footway,
+            "Designation": street.designation,
+            "Lanes": street.lanes,
+            "Bike Access": street.bicycle,
+            "Cycleway": street.cycleway,
+            "Foot Access": street.foot,
+            "Sidewalk": street.sidewalk,
+            "Busway": street.busway,
+            "Bus Lanes": street.busLanes,
+
+            // Path-specific access / usage
+            "Horse Access": street.horse,
+            "Motor Vehicle Access": street.motorVehicle,
+            "Motorcar Access": street.motorcar,
+            "Segregated": street.segregated,
+
+            // Traffic / routing
+            "Speed Limit": street.maxSpeed,
+            "Oneway": street.oneway,
             "Junction Type": street.junctionType,
             "Junction Ref": street.junctionRef,
+
+            // Destinations
             "Destination": street.destination,
             "Destination Ref": street.destinationRef,
             "Destination Street": street.destinationStreet,
-            "Surface": street.details.tags.surface,
-            "has Toll": street.details.tags.toll,
-            "Is Bridge": street.details.tags.bridge,
-            "Access": street.details.tags.access,
-"Crossing": street.details.tags.crossing,
-"Crossing Signals": street.details.tags.crossing_signals,
-"Tactile Paving": street.details.tags.tactile_paving,
-"Wheelchair": street.details.tags.wheelchair,
-"Lit": street.details.tags.lit,
-"Tunnel": street.details.tags.tunnel,
-"Width": street.details.tags.width,
-"Layer": street.details.tags.layer,
-"OSM Way ID": street.id
+
+            // Physical characteristics
+            "Surface": street.surface,
+            "Smoothness": street.smoothness,
+            "Incline": street.incline,
+            "Width": street.width,
+            "Toll": street.toll,
+            "Bridge": street.bridge,
+            "Access": street.access,
+            "Layer": street.layer,
+            "Tunnel": street.tunnel,
+
+            // Pedestrian / accessibility
+            "Crossing": street.crossing,
+            "Crossing Signals": street.crossingSignals,
+            "Tactile Paving": street.tactilePaving,
+            "Wheelchair": street.wheelchair,
+            "Lit": street.lit,
+
+            // Hiking / trail information
+            "SAC Scale": street.sacScale,
+            "Trail Visibility": street.trailVisibility,
+
+            // OSM
+            "OSM Way ID": street.id
         };
         const htmlTable = makeTable(details);
         injectToModal(htmlTable);

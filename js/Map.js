@@ -162,7 +162,7 @@ async loadTile(tile) {
 
     const query = `
 [out:json][timeout:60];
-way["highway"]["highway"!~"footway|path|bridleway|steps|corridor|sidewalk|track"]
+way["highway"]["highway"!~"bridleway|steps|corridor|sidewalk|track"]
 (${box.south},${box.west},${box.north},${box.east});
 out body;
 node(w);
@@ -794,8 +794,6 @@ getNeighbors(intersectionId) {
   }
 
   clear() {
-    this._nodeToWays.clear();
-    this._nodes.clear();
     this._intersections.clear();
     this._streets.clear();
     this.tiles.clear();
