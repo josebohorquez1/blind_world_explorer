@@ -425,6 +425,9 @@ export const refreshRoadData = async () => {
     const menu = document.getElementById("menu");
     const isHidden = (menu.hidden === true);
     event.currentTarget.setAttribute("aria-expanded", String(isHidden));
+    if (!isHidden){
+      menu.querySelectorAll("button")[0].focus();
+    }
     menu.hidden = !isHidden;
   };
 

@@ -274,24 +274,36 @@ export const initRoadMenu = () => {
         );
     });
 
-    document.getElementById("menu-clear-cache").addEventListener("click", async () => {
-        const response = await showDialog(
-            "Clear Stored Map Data?",
-            "Are you sure you wish to clear all stored map data? Stored map data helps the application load faster. If you proceed, all stored map data will be deleted and cannot be recovered.",
-            true
-        );
-        if (response) {
+document.getElementById("menu-clear-cache").addEventListener("click", async () => {
+    const response = await showDialog(
+        "Clear Stored Map Data?",
+        "Are you sure you wish to clear all stored map data? Stored map data helps the application load faster. If you proceed, all stored map data will be deleted and cannot be recovered.",
+        true
+    );
+
+    if (response) {
+        try {
             await clearTilesFromCache();
+
             await showDialog(
                 "Stored Map Data Deleted",
                 "All stored map data has been deleted."
             );
+        } catch (error) {
+            console.error("Unable to clear stored map data:", error);
+
+            await showDialog(
+                "Stored Map Data Deleting Error",
+                "Unable to delete stored map data."
+            );
         }
+    }
+
     closeMenu(
-            document.getElementById("btn-menu"),
-            document.getElementById("menu")
-        );
-    });
+        document.getElementById("btn-menu"),
+        document.getElementById("menu")
+    );
+});
 
 document.getElementById("menu-keyboard-help").addEventListener("click", () => {
     let htmlString = "";

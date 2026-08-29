@@ -137,22 +137,25 @@ export async function deleteTile(key) {
 }
 
 /**
- * Deletes all cached tiles from the local cache.
+ * Deletes the local map cache database.
  *
- * Removes every tile stored in the IndexedDB cache. This operation
- * permanently clears the tile cache and is typically used to reset
- * cached map data.
+ * Permanently removes the IndexedDB database containing all cached
+ * map tiles. The database will be recreated automatically the next
+ * time initCache() is called.
  *
- * @returns {Promise<void>} Resolves when the cache has been cleared.
+ * @returns {Promise<void>} Resolves when the database has been deleted.
  */
 export async function clearTilesFromCache() {
     ensureCacheInitialized();
+    cacheDb.close();
+    cacheDb = null;
     return new Promise((resolve, reject) => {
-        const transaction = cacheDb.transaction("tiles", "readwrite");
-        const store = transaction.objectStore("tiles");
-        store.clear();
-        transaction.oncomplete = () => resolve();
-        transaction.onerror = () => reject(transaction.error);
+        const request = indexedDB.deleteDatabase("IntersectionCache");
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+        request.onblocked = () => {
+            reject(new Error("Cache database deletion was blocked."));
+        };
     });
 }
 
