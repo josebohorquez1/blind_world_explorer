@@ -109,6 +109,7 @@ export class Street {
     if (this.highwayType === "cycleway") return "Bike Path";
     if (this.highwayType === "footway") return "Walking Path";
     if (this.highwayType === "path") return "Path";
+    if (this.highwayType === "pedestrian") return "Pedestrian Street";
     if (this.junctionType === "roundabout") return "Roundabout";
 
     if (
@@ -167,6 +168,7 @@ get isUnnamed() {
     "cycleway",
     "footway",
     "path",
+    "pedestrian",
     "construction"
   ];
 
