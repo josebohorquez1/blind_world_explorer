@@ -53,15 +53,6 @@ export const relativeDirectionToString = (heading, neighbors) => {
 };
 
 export const initData = async () => {
-  if (state.intersection_graph.isLoaded) return;
-    Utils.srAnnounce(statusMount, `Loading intersections.`);
-    Utils.srAnnounce(
-      announcementsMount,
-      `<div class="d-flex align-items-center gap-2" role="status" aria-live="polite">
-  <div class="spinner-border spinner-border-sm" aria-hidden="true"></div>
-  <span>Loading intersections...</span>
-</div>`
-    );
       let announcements = "";
       await mapCache.initCache();
         const fetchResponse = await state.intersection_graph.loadGraph(state.lat, state.lon, announcementsMount);

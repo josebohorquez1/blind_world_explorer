@@ -37,21 +37,12 @@ const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
  */
 export class IntersectionGraph {
   constructor() {
-    /** @type {Map<string, {lat: number, lon: number}>} */
-    this._nodes = new Map();
 
     /** @type {Map<string, Intersection>}  All intersections, keyed by OSM node ID */
     this._intersections = new Map();
 
     /** @type {Map<string, Street>}  All streets, keyed by OSM way ID */
     this._streets = new Map();
-
-    /**
-     * Index of OSM node ID → set of way IDs passing through that node.
-     * Used during construction to detect intersection nodes (shared by 2+ ways).
-     * @type {Map<string, Set<string>>}
-     */
-    this._nodeToWays = new Map();
 
     /** @type{Map<string, Tile} The map containing the tiles. The key is determined by x-coordinate_y-coordinate */
     this.tiles = new Map();

@@ -15,7 +15,7 @@ export const initExploreMode = async () => {
     const url = `?mode=explore&coords=${state.lat},${state.lon}`;
     const currentLocationDescription = await ExploreUtils.reportCurrentLocation(state.lat, state.lon);
     Utils.srAnnounce(statusMount, `${currentLocationDescription}`);
-    Utils.srAnnounce(announcementsMount, `<p>Heading ${state.current_heading} degrees ${Utils.getCardinalDirection(state.current_heading)}</p>`);
+    Utils.srAnnounce(announcementsMount, `<p>Heading ${Math.round(state.current_heading)} degrees ${Utils.getCardinalDirection(state.current_heading)}</p>`);
     history.pushState({}, "", url);
     initExplorerMenu();
     initkeyboardEvents();
