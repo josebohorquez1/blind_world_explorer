@@ -423,6 +423,7 @@ export const refreshRoadData = async () => {
       // Select the neighbor reachable by the smallest clockwise turn
       const alignAnnouncement = updateAlignment(state.current_heading, state.current_intersection, "right", false);
       Utils.srAnnounce(announcementsMount, `${alignAnnouncement}`);
+      console.log(state.current_heading);
   };
 
   export const turnAround = () => {

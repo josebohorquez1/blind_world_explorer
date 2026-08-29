@@ -250,6 +250,9 @@ ensureTilesAround(lat, lon, radius = 1) {
 }
 
   _buildEdges() {
+    for (const intersection of this.intersections.values()) {
+      intersection.edges.clear();
+    }
   for (const street of this.streets.values()) {
     let prevIntersection = null;
 
@@ -590,7 +593,7 @@ getNeighbors(intersectionId) {
       const hasCrossStreets = namedEdges.some(e => (
         e.segment.key !== currentEdge.segment.key
       ));
-      if (hasCrossStreets || sameStreetEdges.length >= 3) {
+      if (hasCrossStreets) {
         pushOrMergeNeighbor(new Neighbor(
           origin.id,
           currentIntersection.id,
@@ -602,7 +605,10 @@ getNeighbors(intersectionId) {
         break;
       }
       const candidates = sameStreetEdges.filter(e => e.to !== currentEdge.from);
-      if (candidates.length !== 1) {
+      const uniqueDestinations = new Set(
+        candidates.map(e => e.to)
+      );
+      if (uniqueDestinations.size !== 1) {
         pushOrMergeNeighbor(new Neighbor(
           origin.id,
           currentIntersection.id,
@@ -678,11 +684,12 @@ getNeighbors(intersectionId) {
 
     let best = null;
     let bestDiff = Infinity;
+    const EPSILON = 0.000001;
 
     for (const neighbor of neighbors) {
       // Counter-clockwise angular distance from currentBearing to neighbor.angle
       const ccwDiff = (currentBearing - neighbor.angle + 360) % 360;
-      if (ccwDiff === 0) continue; // Straight ahead is not a left turn
+      if (ccwDiff < EPSILON) continue; // Straight ahead is not a left turn
       if (ccwDiff < bestDiff) {
         best = neighbor;
         bestDiff = ccwDiff;
@@ -706,11 +713,12 @@ getNeighbors(intersectionId) {
 
     let best = null;
     let bestDiff = Infinity;
+    const EPSILON = 0.000001;
 
     for (const neighbor of neighbors) {
       // Clockwise angular distance from currentBearing to neighbor.angle
       const cwDiff = (neighbor.angle - currentBearing + 360) % 360;
-      if (cwDiff === 0) continue; // Straight ahead is not a right turn
+      if (cwDiff < EPSILON) continue; // Straight ahead is not a right turn
       if (cwDiff < bestDiff) {
         best = neighbor;
         bestDiff = cwDiff;
