@@ -41,10 +41,10 @@ export class IntersectionGraph {
     this._nodes = new Map();
 
     /** @type {Map<string, Intersection>}  All intersections, keyed by OSM node ID */
-    this.intersections = new Map();
+    this._intersections = new Map();
 
     /** @type {Map<string, Street>}  All streets, keyed by OSM way ID */
-    this.streets = new Map();
+    this._streets = new Map();
 
     /**
      * Index of OSM node ID → set of way IDs passing through that node.
@@ -249,79 +249,153 @@ ensureTilesAround(lat, lon, radius = 1) {
     return tiles;
 }
 
-  _buildEdges() {
-    for (const intersection of this.intersections.values()) {
-      intersection.edges.clear();
+/**
+ * Creates new street objects using ways
+ * Street objects are the ways, or segments that make up an entire true street or road
+ * We add any new street to the global street map
+ * If the street object already exists, we skip it.
+ * We skip it since OSM already gives us the complete way
+ * However, when loading new tiles, OSM can gives us ways we already found through previous tiles.
+ * Returns the new streets that were created
+ * 
+ * @param {Map<string, Object>} ways - A map of key way IDs and value OSM way objects
+ * @returns {Street[]}
+ */
+_buildStreets(ways) {
+  const streets = [];
+  for (const [wayId, way] of ways) {
+    if (!this.getStreet(wayId)) {
+      const street = new Street(way);
+      this._streets.set(wayId, street);
+      streets.push(street);
     }
-  for (const street of this.streets.values()) {
-    let prevIntersection = null;
+  }
+  return streets;
+}
 
-    for (const nodeId of street.nodeIds) {
+/**
+  * Matches a OSM node to a set of OSM ways connecting to this node
+ * An intersection is a node made up of the ways that have this node in common
+ * Creates a map of key node IDs and value set of ways
+ * 
+ * @param {Object[]} ways - a list of OSM way objectss
+ * @returns {Map<string, Set<string>>}
+ */
+_findWaysThatShareNode(ways) {
 
-      if (!this.intersections.has(nodeId)) continue;
+  /** @type {Map<string, Set<string>>}*/
+  const nodeToWays = new Map();
 
-      if (!prevIntersection) {
-        prevIntersection = nodeId;
+  for (const way of ways) {
+    const nodes = (way.nodes || []).map(String);
+    if (!nodes.length) continue;
+    for (const node of nodes) {
+      if (!nodeToWays.has(node)) {
+        nodeToWays.set(node, new Set());
+      }
+      nodeToWays.get(node).add(way.id);
+    }
+  }
+  return nodeToWays;
+}
+
+/**
+ * Creates new Intersection objects
+ * Uses a map of nodes sharing a set of ways
+ * Uses the tile's list of nodes to get the coordinates
+ * Uses the newly created streets to add endpoints as intersections, if not already the case
+ * We add endpoints as deadends are themselves navigable intersections
+ * Adds the newly created intersection objects to the graph
+ * 
+ * @param {Map<string, Set<string>>} nodeToWays - A map of key nodeId and value set of ways that share that node
+ * @param {Map<string, {
+ * lat: number,
+ * lon: number
+ * }> nodes - The map of nodes from the tile containing key nodeId, and value coordinates}
+ * @param {Street[]} streets - a list of streets used to add endpoint as intersections
+ */
+_buildIntersections(nodeToWays, nodes, streets) {
+  const intersectionSet = new Set();
+  for (const [node, ways] of nodeToWays) {
+    if (ways.size >= 2) {
+      intersectionSet.add(node);
+    }
+  }
+  for (const street of streets) {
+    if (street.nodeIds.length === 0) continue;
+    intersectionSet.add(street.beginningNode);
+    intersectionSet.add(street.endNode);
+  }
+  for (const node of intersectionSet) {
+    const nodeData = nodes.get(node);
+    if (!nodeData) continue;
+    const {lat, lon} = nodeData;
+    if (!this._intersections.has(node)) {
+      this._intersections.set(
+        node, new Intersection(node, lat, lon)
+      );
+    }
+  }
+}
+
+/**
+ * Builds edges connecting one intersection to the next
+ * edges are built based on the nodes and ways in each tile
+ * Existing intersections have their edges cleared to ensure that nee are up to date
+ * Edges are global in the graph
+ * 
+ * @param {string[]} ways - A list of wayIds
+ */
+_buildEdges(ways) {
+  for (const wayId of ways) {
+    const street = this._streets.get(wayId);
+    if (!street) continue;
+    let prev = null;
+    for (const node of street.nodeIds) {
+      const intersection = this._intersections.get(node);
+      if (!intersection) continue;
+      for (const [edgeId, edge] of intersection.edges) {
+        if (edge.segment.id === street.id) {
+          intersection.edges.delete(edgeId);
+        }
+      }
+    }
+    for (const node of street.nodeIds) {
+      if (!this._intersections.has(node)) continue;
+      if (!prev) {
+        prev = node;
         continue;
       }
-
-      const from = this.intersections.get(prevIntersection);
-      const to = this.intersections.get(nodeId);
-
-      const distance =
-        Utils.calculateDistanceBetweenCoordinates(
-          from.lat,
-          from.lon,
-          to.lat,
-          to.lon
-        );
-
-      const fromTo =
-        Utils.getBearingAndDirection(
-          from.lat,
-          from.lon,
-          to.lat,
-          to.lon
-        );
-
-      const toFrom =
-        Utils.getBearingAndDirection(
-          to.lat,
-          to.lon,
-          from.lat,
-          from.lon
-        );
-
-      const edgeForward = new Edge(
-        from.id,
-        to.id,
-        street,
-        distance,
-        fromTo.angle,
-        fromTo.cardinal
+      const from = this._intersections.get(prev);
+      const to = this._intersections.get(node);
+      const distance = Utils.calculateDistanceBetweenCoordinates(
+        from.lat, from.lon,
+        to.lat, to.lon
       );
-
-      const edgeBackward = new Edge(
-        to.id,
-        from.id,
-        street,
-        distance,
-        toFrom.angle,
-        toFrom.cardinal
+      const fromTo = Utils.getBearingAndDirection(
+        from.lat, from.lon,
+        to.lat, to.lon
       );
-
-      if (!from.getEdge(edgeForward.id)) {
-        from.addEdge(edgeForward.id, edgeForward);
-      }
-
-      if (!to.getEdge(edgeBackward.id)) {
-        to.addEdge(edgeBackward.id, edgeBackward);
-      }
-
-      prevIntersection = nodeId;
+      const toFrom = Utils.getBearingAndDirection(
+        to.lat, to.lon,
+        from.lat, from.lon
+      );
+      const fromToEdge = new Edge(
+        from.id, to.id,
+        street, distance,
+        fromTo.angle, fromTo.cardinal
+      );
+      const toFromEdge = new Edge(
+        to.id, from.id,
+        street, distance,
+        toFrom.angle, toFrom.cardinal
+      );
+      from.addEdge(fromToEdge.id, fromToEdge);
+      to.addEdge(toFromEdge.id, toFromEdge);
+      prev = node;
     }
   }
-  }
+}
 
 /**
  * Integrates a tile into the global street graph.
@@ -330,75 +404,12 @@ ensureTilesAround(lat, lon, radius = 1) {
  */
 integrateTile(tile) {
   if (tile.nodes.size === 0 || tile.ways.size === 0) return;
-
-  /** @type {Street[]} Streets created from this tile */
-  const streetList = [];
-
-  // ---- Merge tile nodes into global node map ----
-  for (const [nodeId, node] of tile.nodes) {
-    if (!this._nodes.has(nodeId)) {
-      this._nodes.set(nodeId, node);
-    }
-  }
-
-  // ---- Create / reuse Street objects ----
-  for (const [wayId, way] of tile.ways) {
-
-    let street = this.streets.get(wayId);
-
-    if (!street) {
-      street = new Street(way);
-      this.streets.set(street.id, street);
-    }
-
-    streetList.push(street);
-  }
-
-  // ---- Build node → ways map ----
-  for (const street of streetList) {
-    for (const nodeId of street.nodeIds) {
-
-      if (!this._nodeToWays.has(nodeId)) {
-        this._nodeToWays.set(nodeId, new Set());
-      }
-
-      this._nodeToWays.get(nodeId).add(street.id);
-    }
-  }
-
-  // ---- Detect intersection nodes ----
-  const intersectionNodes = new Set();
-
-  for (const [nodeId, ways] of this._nodeToWays.entries()) {
-    if (ways.size >= 2) intersectionNodes.add(nodeId);
-  }
-
-  // also treat endpoints as intersections
-  for (const street of streetList) {
-    if (street.nodeIds.length === 0) continue;
-
-    intersectionNodes.add(street.beginningNode);
-    intersectionNodes.add(street.endNode);
-  }
-
-  // ---- Build Intersection objects ----
-  for (const nodeId of intersectionNodes) {
-
-    const nodeData = this._nodes.get(nodeId);
-    if (!nodeData) continue;
-
-    const { lat, lon } = nodeData;
-
-    if (!this.intersections.has(nodeId)) {
-      this.intersections.set(
-        nodeId,
-        new Intersection(nodeId, lat, lon)
-      );
-    }
-  }
-
-  // ---- Build edges between intersections ----
-  this._buildEdges();
+  const nodes = tile.nodes;
+  const ways = tile.ways;
+  const streets = this._buildStreets(ways);
+  const nodeToWays = this._findWaysThatShareNode(ways);
+  this._buildIntersections(nodeToWays, nodes, streets);
+  this._buildEdges(ways.keys());
 }
 
 /**
@@ -505,7 +516,7 @@ async loadGraph(lat, lon, mount = null, maxRetries = 5) {
     let nearest = null;
     let minDist = Infinity;
 
-    for (const intersection of this.intersections.values()) {
+    for (const intersection of this._intersections.values()) {
       // Skip intersections with no named streets — they are not useful navigation targets
       const namedStreets = [...intersection.edges.values()].filter(e => !e.segment.isUnnamed);
       if (namedStreets.length === 0) continue;
@@ -633,7 +644,7 @@ getNeighbors(intersectionId) {
    * @returns {Intersection|null}
    */
   getIntersection(id) {
-    return this.intersections.get(id) || null;
+    return this._intersections.get(id) || null;
   }
 
   /**
@@ -643,7 +654,7 @@ getNeighbors(intersectionId) {
    * @returns {Street|null}
    */
   getStreet(streetId) {
-    return this.streets.get(streetId) || null;
+    return this._streets.get(streetId) || null;
   }
   
   /**
@@ -794,13 +805,13 @@ getNeighbors(intersectionId) {
   clear() {
     this._nodeToWays.clear();
     this._nodes.clear();
-    this.intersections.clear();
-    this.streets.clear();
+    this._intersections.clear();
+    this._streets.clear();
     this.tiles.clear();
   }
 
   get isLoaded() {
-    return this.intersections.size > 0;
+    return this._intersections.size > 0;
   }
 
   /**
