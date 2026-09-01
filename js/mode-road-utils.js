@@ -16,9 +16,11 @@ let isUpdating = false;
 let updatePending = false;
 
 //Fail safe function: return to explore mode.
-export const returnToExploreMode = () => {
+export const switchToExploreMode = () => {
   document.removeEventListener("keydown", keyboardEvents);
   document.getElementById("announcements-mount").innerHTML = "";
+  isUpdating = false;
+  updatePending = false;
     switchApplicationView(
         "pages/mode-explore.html",
         document.getElementById("app-mount"),
@@ -58,7 +60,7 @@ export const initData = async () => {
         const fetchResponse = await state.intersection_graph.loadGraph(state.lat, state.lon, announcementsMount);
         if (!fetchResponse) {
           Utils.srAnnounce(statusMount, `Unable to load intersection data. Returning to explorer mode. Click the "Switch to road mode" button to try again.`);
-          returnToExploreMode();
+          switchToExploreMode();
           return;
         }
 
@@ -68,7 +70,7 @@ export const initData = async () => {
       // Step 1: Snap to the nearest named intersection
       if (!closestIntersection) {
         Utils.srAnnounce(statusMount, `Unable to be placed on a road. Returning to free explore mode.`);
-        returnToExploreMode();
+        switchToExploreMode();
         return;
       }
 
@@ -277,7 +279,7 @@ const distances = [
       }
     };
 
-  export const switchToExploreMode = () => {
+  export const chooseNewLocation = () => {
     document.removeEventListener("keydown", keyboardEvents);
         const url = location.origin + location.pathname;
         history.replaceState({}, "", url);
@@ -290,6 +292,8 @@ const distances = [
           state.lat = 0;
           state.location_history= [];
           state.lon = 0;
+          updatePending = false;
+          isUpdating = false;
           switchApplicationView(
           "pages/start.html",
           document.getElementById("app-mount"),

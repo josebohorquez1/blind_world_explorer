@@ -19,11 +19,9 @@ export const initRoadMode = async () => {
     initRoadMenu();
     initkeyboardEvents();
 
-    document.getElementById("nav-explore-mode").addEventListener("click", () => {
-      roadUtils.returnToExploreMode();
-    });
+    document.getElementById("nav-explore-mode").addEventListener("click", roadUtils.switchToExploreMode);
 
-    document.getElementById("nav-new-location").addEventListener("click", roadUtils.switchToExploreMode);
+    document.getElementById("nav-new-location").addEventListener("click", roadUtils.chooseNewLocation);
     
     document.getElementById("nav-refresh-road").addEventListener("click", roadUtils.refreshRoadData);
 
