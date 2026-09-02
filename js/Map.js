@@ -178,10 +178,7 @@ out body;
         if (data.elements) {
             for (const el of data.elements) {
                 if (el.type === "node") {
-                    tile.addNode(el.id, {
-                        lat: el.lat,
-                        lon: el.lon
-                    });
+                    tile.addNode(el.id, el);
                 }
                 else if (el.type === "way") {
                     tile.addWay(el.id, el);
@@ -299,10 +296,7 @@ _findWaysThatShareNode(ways) {
  * Adds the newly created intersection objects to the graph
  * 
  * @param {Map<string, Set<string>>} nodeToWays - A map of key nodeId and value set of ways that share that node
- * @param {Map<string, {
- * lat: number,
- * lon: number
- * }> nodes - The map of nodes from the tile containing key nodeId, and value coordinates}
+ * @param {Map<string, Object>} nodes - The map of nodes from the tile containing key nodeId, and value OSM node
  * @param {Street[]} streets - a list of streets used to add endpoint as intersections
  */
 _buildIntersections(nodeToWays, nodes, streets) {
@@ -317,13 +311,12 @@ _buildIntersections(nodeToWays, nodes, streets) {
     intersectionSet.add(street.beginningNode);
     intersectionSet.add(street.endNode);
   }
-  for (const node of intersectionSet) {
-    const nodeData = nodes.get(node);
+  for (const nodeId of intersectionSet) {
+    const nodeData = nodes.get(nodeId);
     if (!nodeData) continue;
-    const {lat, lon} = nodeData;
-    if (!this._intersections.has(node)) {
+    if (!this._intersections.has(nodeId)) {
       this._intersections.set(
-        node, new Intersection(node, lat, lon)
+        nodeId, new Intersection(nodeData)
       );
     }
   }
@@ -506,7 +499,6 @@ async loadGraph(lat, lon, mount = null, maxRetries = 5) {
   getNearestIntersection(lat, lon) {
     let nearest = null;
     let minDist = Infinity;
-
     for (const intersection of this._intersections.values()) {
       // Skip intersections with no named streets — they are not useful navigation targets
       const namedStreets = [...intersection.edges.values()].filter(e => !e.segment.isUnnamed);

@@ -19,7 +19,7 @@ export class Tile {
 
     /**
      * Raw OSM node data within this tile.
-     * @type {Map<string, {lat:number, lon:number}>}
+     * @type {Map<string, Object>}
      */
     this.nodes = new Map();
 
@@ -34,7 +34,7 @@ export class Tile {
    * Adds a node to the tile.
    *
    * @param {string} id
-   * @param {{lat:number, lon:number}} node
+   * @param {Object} node
    */
   addNode(id, node) {
     this.nodes.set(String(id), node);

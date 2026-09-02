@@ -13,14 +13,13 @@ import { Edge } from "./map-edge.js";
 
 export class Intersection {
   /**
-   * @param {string} id   OSM node ID
-   * @param {number} lat
-   * @param {number} lon
+   * @param {Object} node   - OSM node 
    */
-  constructor(id, lat, lon) {
-    this.id = id;
-    this.lat = lat;
-    this.lon = lon;
+  constructor(node) {
+    this.id = String(node.id);
+    this.lat = node.lat;
+    this.lon = node.lon;
+    this.tags = node.tags || {};
     
     /** @type {Map<string, Edge>} */
     this.edges = new Map();
