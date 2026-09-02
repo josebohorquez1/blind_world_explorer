@@ -231,6 +231,81 @@ export const initRoadMenu = () => {
         injectToModal(htmlTable);
     });
 
+document.getElementById("menu-intersection-details").addEventListener("click", () => {
+    const currentIntersection = state.intersection_graph.getIntersection(
+        state.current_intersection
+    );
+
+    let htmlString = "";
+
+    htmlString += `<h1>Intersection: ${currentIntersection.description}</h1>`;
+
+    htmlString += `
+        <p>
+            <strong>Coordinates:</strong>
+            ${currentIntersection.lat}, ${currentIntersection.lon}
+        </p>
+    `;
+
+    htmlString += `<h2>Intersection Streets</h2>`;
+    htmlString += `<ul>`;
+
+    for (const e of currentIntersection.edges.values()) {
+        htmlString += `
+            <li>
+                <strong>${e.segment.label}</strong>:
+                heads ${Math.round(e.angle)} degrees ${e.cardinal}
+            </li>
+        `;
+    }
+
+    htmlString += `</ul>`;
+
+    htmlString += `<h2>Additional Intersection Information</h2>`;
+
+    if (
+        !currentIntersection.tags ||
+        Object.keys(currentIntersection.tags).length === 0
+    ) {
+        htmlString += `<p>No additional information available.</p>`;
+    }
+    else {
+        const tags = currentIntersection.tags;
+        function formatTagValue(value) {
+            if (!value) return "";
+
+            const values = {
+                yes: "Yes",
+                no: "No",
+                unknown: "Unknown",
+                traffic_signals: "Traffic signals",
+                zebra: "Zebra crossing",
+                marked: "Marked crossing",
+                unmarked: "Unmarked crossing",
+                button_operated: "Button operated",
+            };
+
+            return values[value] || value;
+        }
+        const intersectionInfo = {
+            "Intersection Type": formatTagValue(tags.highway),
+            "Crossing Type": formatTagValue(tags.crossing),
+            "Crossing Signals": formatTagValue(tags.crossing_signals),
+            "Tactile Paving": formatTagValue(tags.tactile_paving),
+            "Traffic Signal Sound": formatTagValue(tags["traffic_signals:sound"]),
+            "Traffic Signal Vibration": formatTagValue(tags["traffic_signals:vibration"]),
+            "Accessible Kerb": formatTagValue(tags.kerb),
+            "Kerb Height": formatTagValue(tags["kerb:height"]),
+            "Lighting": formatTagValue(tags.lit),
+            "Wheelchair Access": formatTagValue(tags.wheelchair),
+            "Crossing Button": formatTagValue(tags.button_operated),
+        };
+        htmlString += makeTable(intersectionInfo);
+    }
+
+    injectToModal(htmlString);
+});
+
     document.getElementById("menu-google-maps").addEventListener("click", () => {
 
         const lat = state.lat;
