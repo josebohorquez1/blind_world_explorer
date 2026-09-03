@@ -668,19 +668,27 @@ getNeighbors(intersectionId) {
    * Returns the neighbor reachable by the smallest left (counter-clockwise) turn
    * from the current heading.
    *
-   * @param {number} currentBearing   Current heading in degrees (0–360)
+   * @param {Neighbor} currentNeighbor   The current neighbor 
    * @param {Array<Neighbor>} neighbors The list of neighbor objects
    * @returns {Neighbor | null}
    */
-  getLeftTurn(currentBearing, neighbors) {
+  getLeftTurn(currentNeighbor, neighbors) {
     if (neighbors.length === 0) return null;
     if (neighbors.length === 1) return neighbors[0];
 
     let best = null;
     let bestDiff = Infinity;
     const EPSILON = 0.000001;
+    const currentBearing = currentNeighbor.angle;
 
     for (const neighbor of neighbors) {
+      if (
+        neighbor.angle === currentNeighbor.angle
+        && neighbor.originIntersectionId === currentNeighbor.originIntersectionId
+        && neighbor.nextIntersectionId === currentNeighbor.nextIntersectionId
+      ) {
+        continue;
+      }
       // Counter-clockwise angular distance from currentBearing to neighbor.angle
       const ccwDiff = (currentBearing - neighbor.angle + 360) % 360;
       if (ccwDiff < EPSILON) continue; // Straight ahead is not a left turn
@@ -697,19 +705,27 @@ getNeighbors(intersectionId) {
    * Returns the neighbor reachable by the smallest right (clockwise) turn
    * from the current heading.
    *
-   * @param {number} currentBearing   Current heading in degrees (0–360)
+   * @param {Neighbor} currentNeighbor   The current neighbor in degrees (0–360)
    * @param {Array<Neighbor>} neighbors A list of neighbor objects
    * @returns {Neighbor | null}
    */
-  getRightTurn(currentBearing, neighbors) {
+  getRightTurn(currentNeighbor, neighbors) {
     if (neighbors.length === 0) return null;
     if (neighbors.length === 1) return neighbors[0];
 
     let best = null;
     let bestDiff = Infinity;
     const EPSILON = 0.000001;
+    const currentBearing = currentNeighbor.angle;
 
     for (const neighbor of neighbors) {
+      if (
+        neighbor.angle === currentNeighbor.angle
+        && neighbor.originIntersectionId === currentNeighbor.originIntersectionId
+        && neighbor.nextIntersectionId === currentNeighbor.nextIntersectionId
+      ) {
+        continue;
+      }
       // Clockwise angular distance from currentBearing to neighbor.angle
       const cwDiff = (neighbor.angle - currentBearing + 360) % 360;
       if (cwDiff < EPSILON) continue; // Straight ahead is not a right turn

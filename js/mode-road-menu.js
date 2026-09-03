@@ -239,6 +239,7 @@ document.getElementById("menu-intersection-details").addEventListener("click", (
     let htmlString = "";
 
     htmlString += `<h1>Intersection: ${currentIntersection.description}</h1>`;
+    htmlString += `<p><strong>OSM Node ID:</strong> ${currentIntersection.id}</p>`;
 
     htmlString += `
         <p>
@@ -254,7 +255,7 @@ document.getElementById("menu-intersection-details").addEventListener("click", (
         htmlString += `
             <li>
                 <strong>${e.segment.label}</strong>:
-                heads ${Math.round(e.angle)} degrees ${e.cardinal}
+                heads ${Math.round(e.angle) % 360} degrees ${e.cardinal}
             </li>
         `;
     }

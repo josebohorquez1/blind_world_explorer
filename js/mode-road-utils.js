@@ -145,11 +145,11 @@ export const updateAlignment = (heading, intersectionId, direction, includeRelat
   if (!direction) {
     neighbor = state.intersection_graph.closestNeighborByAngularDiff(heading, neighbors);
   } else if (direction === "left") {
-    neighbor = state.intersection_graph.getLeftTurn(heading, neighbors);
+    neighbor = state.intersection_graph.getLeftTurn(state.current_neighbor, neighbors);
   } else if (direction === "around") {
     neighbor = state.intersection_graph.getAround(heading, neighbors);
   } else {
-    neighbor = state.intersection_graph.getRightTurn(heading, neighbors);
+    neighbor = state.intersection_graph.getRightTurn(state.current_neighbor, neighbors);
   }
   if (!neighbor) return `<p>Unable to turn.</p>`;
   state.current_neighbor = neighbor;
