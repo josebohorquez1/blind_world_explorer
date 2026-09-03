@@ -156,6 +156,7 @@ export const initRoadMenu = () => {
 
     document.getElementById("menu-street-details").addEventListener("click", () => {
         const street = state.intersection_graph.getStreet(state.current_neighbor.wayId);
+
         const details = {
             // Basic identification
             "Label": street.label,
@@ -194,6 +195,7 @@ export const initRoadMenu = () => {
             // Traffic / routing
             "Speed Limit": street.maxSpeed,
             "Oneway": street.oneway,
+            "Oneway Direction": street.onewayDirection,
             "Junction Type": street.junctionType,
             "Junction Ref": street.junctionRef,
 

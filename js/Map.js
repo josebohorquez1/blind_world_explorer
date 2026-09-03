@@ -246,14 +246,25 @@ ensureTilesAround(lat, lon, radius = 1) {
  * However, when loading new tiles, OSM can gives us ways we already found through previous tiles.
  * Returns the new streets that were created
  * 
+ * @param {Map<string, Object>} nodes - A map of node IDs and value nodes
  * @param {Map<string, Object>} ways - A map of key way IDs and value OSM way objects
  * @returns {Street[]}
  */
-_buildStreets(ways) {
+_buildStreets(nodes, ways) {
   const streets = [];
   for (const [wayId, way] of ways) {
     if (!this.getStreet(wayId)) {
       const street = new Street(way);
+      if (street.oneway === "yes") {
+        const begining = nodes.get(street.beginningNode);
+        const end = nodes.get(street.endNode);
+        if (begining && end) {
+          street.onewayDirection = Utils.getBearingAndDirection(
+            begining.lat, begining.lon,
+            end.lat, end.lon
+          ).cardinal;
+        }
+      }
       this._streets.set(wayId, street);
       streets.push(street);
     }
@@ -390,7 +401,7 @@ integrateTile(tile) {
   if (tile.nodes.size === 0 || tile.ways.size === 0) return;
   const nodes = tile.nodes;
   const ways = tile.ways;
-  const streets = this._buildStreets(ways);
+  const streets = this._buildStreets(nodes, ways);
   const nodeToWays = this._findWaysThatShareNode(ways);
   this._buildIntersections(nodeToWays, nodes, streets);
   this._buildEdges(ways.keys());

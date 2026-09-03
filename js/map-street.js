@@ -1,3 +1,4 @@
+import * as Utils from "./UtilFunctions.js";
 /**
  * Represents a named road segment (OSM Way) connecting two intersections.
  *
@@ -58,6 +59,7 @@ export class Street {
       // Traffic / routing
       this.maxSpeed = tags.maxspeed || null;
       this.oneway = tags.oneway || null;
+      this.onewayDirection = "";
       this.junctionType = tags.junction || null;
       this.junctionRef = tags["junction:ref"] || null;
 
